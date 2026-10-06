@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -56,6 +56,79 @@ const employmentOptions = [
   'Young Professional',
 ]
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+
+const fromApiApplicant = (applicant) => ({
+  id: applicant.id,
+  lastName: applicant.lastName || '',
+  firstName: applicant.firstName || '',
+  middleName: applicant.middleName || '',
+  extensionName: applicant.extensionName || '',
+  birthday: applicant.birthdate || '',
+  address: applicant.address || '',
+  barangay: applicant.barangay || '',
+  cityMunicipality: applicant.municipality || '',
+  province: applicant.province || '',
+  course: applicant.course || '',
+  email: applicant.email || '',
+  contactNo: applicant.contactNumber || '',
+  sex: applicant.sex || '',
+  civilStatus: applicant.civilStatus || '',
+  age: applicant.age === null || applicant.age === undefined ? '' : String(applicant.age),
+  remarks: applicant.remarks || '',
+  gipForm: Boolean(applicant.requirements?.gipForm),
+  resume: Boolean(applicant.requirements?.resume),
+  validId: Boolean(applicant.requirements?.validId),
+  psa: Boolean(applicant.requirements?.psa),
+  diploma: Boolean(applicant.requirements?.diploma),
+  tor: Boolean(applicant.requirements?.tor),
+  supportingDocs: applicant.supportingDocuments || '',
+  employmentStatus: applicant.classifications || [],
+  dateApplied: applicant.dateApplied || '',
+})
+
+const toApiApplicant = (applicant) => ({
+  lastName: applicant.lastName,
+  firstName: applicant.firstName,
+  middleName: applicant.middleName,
+  extensionName: applicant.extensionName,
+  birthdate: applicant.birthday,
+  age: applicant.age,
+  sex: applicant.sex,
+  civilStatus: applicant.civilStatus,
+  address: applicant.address,
+  barangay: applicant.barangay,
+  municipality: applicant.cityMunicipality,
+  province: applicant.province,
+  course: applicant.course,
+  email: applicant.email,
+  contactNumber: applicant.contactNo,
+  classifications: applicant.employmentStatus,
+  dateApplied: applicant.dateApplied,
+  remarks: applicant.remarks,
+  requirements: {
+    gipForm: applicant.gipForm,
+    resume: applicant.resume,
+    validId: applicant.validId,
+    psa: applicant.psa,
+    diploma: applicant.diploma,
+    tor: applicant.tor,
+  },
+  supportingDocuments: applicant.supportingDocs,
+})
+
+const request = async (path, options = {}) => {
+  const response = await fetch(`${apiUrl}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(body.message || 'The server could not complete the request.')
+  }
+  return response.status === 204 ? null : response.json()
+}
+
 const groupLabels = {
   beneficiary: 'BENEFICIARY INFORMATION',
   requirements: 'REQUIREMENTS',
@@ -98,12 +171,47 @@ const formatDate = (value) => {
     : date.toLocaleDateString('en-GB')
 }
 
+const calculateAge = (birthday) => {
+  if (!birthday) return ''
+
+  const birthDate = new Date(`${birthday}T00:00:00`)
+  if (Number.isNaN(birthDate.getTime())) return ''
+
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const birthdayThisYear = new Date(
+    today.getFullYear(),
+    birthDate.getMonth(),
+    birthDate.getDate(),
+  )
+
+  if (today < birthdayThisYear) age -= 1
+  return age >= 0 ? String(age) : ''
+}
+
 function Gip() {
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
   const [selectedRow, setSelectedRow] = useState(null)
   const [formRow, setFormRow] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const loadApplicants = async () => {
+      try {
+        const applicants = await request('/gip/applicants')
+        setRows(applicants.map(fromApiApplicant))
+      } catch (loadError) {
+        setError(loadError.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadApplicants()
+  }, [])
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -117,21 +225,48 @@ function Gip() {
   const openEditForm = (row) => setFormRow({ ...row })
   const closeForm = () => setFormRow(null)
 
-  const saveRow = () => {
-    if (formRow.id === null) {
-      setRows((currentRows) => [...currentRows, { ...formRow, id: Date.now() }])
-    } else {
-      setRows((currentRows) => currentRows.map((row) => (
-        row.id === formRow.id ? formRow : row
-      )))
+  const saveRow = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      const isNew = formRow.id === null
+      const saveResponse = await request(
+        isNew ? '/gip/applicants' : `/gip/applicants/${formRow.id}`,
+        {
+          method: isNew ? 'POST' : 'PUT',
+          body: JSON.stringify(toApiApplicant(formRow)),
+        },
+      )
+      let savedRow
+      if (isNew) {
+        savedRow = { ...formRow, id: saveResponse.applicantId }
+      } else {
+        const applicants = await request('/gip/applicants')
+        const updatedApplicant = applicants.find((row) => row.id === formRow.id)
+        if (!updatedApplicant) throw new Error('Updated applicant could not be loaded.')
+        savedRow = fromApiApplicant(updatedApplicant)
+      }
+      setRows((currentRows) => isNew
+        ? [...currentRows, savedRow]
+        : currentRows.map((row) => (row.id === savedRow.id ? savedRow : row)))
+      setSearch('')
+      closeForm()
+    } catch (saveError) {
+      setError(saveError.message)
+    } finally {
+      setSaving(false)
     }
-    setSearch('')
-    closeForm()
   }
 
-  const deleteRow = () => {
-    setRows((currentRows) => currentRows.filter((row) => row.id !== deleteTarget.id))
-    setDeleteTarget(null)
+  const deleteRow = async () => {
+    try {
+      setError('')
+      await request(`/gip/applicants/${deleteTarget.id}`, { method: 'DELETE' })
+      setRows((currentRows) => currentRows.filter((row) => row.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } catch (deleteError) {
+      setError(deleteError.message)
+    }
   }
 
   return (
@@ -162,6 +297,11 @@ function Gip() {
               {filteredRows.length} {filteredRows.length === 1 ? 'record' : 'records'} shown
             </Typography>
           </Box>
+          {error && (
+            <Typography color="error" role="alert" variant="body2">
+              {error}
+            </Typography>
+          )}
           <Box className="gip-toolbar-actions">
             <TextField
               aria-label="Search applicants"
@@ -204,7 +344,9 @@ function Gip() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredRows.length === 0 ? (
+            {loading ? (
+              <TableRow><TableCell align="center" colSpan={columns.length + 1}>Loading applicants...</TableCell></TableRow>
+            ) : filteredRows.length === 0 ? (
               <TableRow>
                 <TableCell align="center" colSpan={columns.length + 1}>
                   {search ? 'No applicants match your search.' : 'No applicants yet. Add an applicant to begin.'}
@@ -310,10 +452,14 @@ function Gip() {
               </Box>
               <Box className="gip-form-grid">
                 {columns.filter((column) => column.group === group).map((column) => {
-                  const updateField = (event) => setFormRow({
-                    ...formRow,
-                    [column.key]: event.target.value,
-                  })
+                  const updateField = (event) => {
+                    const value = event.target.value
+                    setFormRow({
+                      ...formRow,
+                      [column.key]: value,
+                      ...(column.key === 'birthday' ? { age: calculateAge(value) } : {}),
+                    })
+                  }
 
                   if (column.key === 'employmentStatus') {
                     const selectedEmployment = Array.isArray(formRow[column.key])
@@ -372,6 +518,19 @@ function Gip() {
                     )
                   }
 
+                  if (column.key === 'age') {
+                    return (
+                      <TextField
+                        disabled
+                        helperText="Calculated from birthday"
+                        key={column.key}
+                        label={column.label}
+                        size="small"
+                        value={formRow.age}
+                      />
+                    )
+                  }
+
                   const isDateField = column.key === 'birthday' || column.key === 'dateApplied'
                   if (isDateField) {
                     return (
@@ -411,7 +570,9 @@ function Gip() {
         </DialogContent>
         <DialogActions className="gip-form-actions">
           <Button onClick={closeForm}>Cancel</Button>
-          <Button onClick={saveRow} variant="contained">Save Applicant</Button>
+          <Button disabled={saving} onClick={saveRow} variant="contained">
+            {saving ? 'Saving...' : 'Save Applicant'}
+          </Button>
         </DialogActions>
       </Dialog>
 
