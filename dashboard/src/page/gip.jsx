@@ -56,6 +56,23 @@ const employmentOptions = [
   'Young Professional',
 ]
 
+const requiredApplicantFields = [
+  'lastName',
+  'firstName',
+  'sex',
+  'civilStatus',
+  'barangay',
+  'cityMunicipality',
+  'province',
+]
+
+const isValidEmail = (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+const isValidContactNumber = (value) => {
+  if (!value) return true
+  const digits = value.replace(/\D/g, '')
+  return /^[+]?[\d\s().-]+$/.test(value) && digits.length >= 7 && digits.length <= 15
+}
+
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 const fromApiApplicant = (applicant) => ({
@@ -124,7 +141,13 @@ const request = async (path, options = {}) => {
   })
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    throw new Error(body.message || 'The server could not complete the request.')
+    const validationMessage = Array.isArray(body.errors)
+      ? body.errors
+        .map((issue) => issue.message)
+        .filter(Boolean)
+        .join(' ')
+      : ''
+    throw new Error(validationMessage || body.message || 'The server could not complete the request.')
   }
   return response.status === 204 ? null : response.json()
 }
@@ -226,6 +249,24 @@ function Gip() {
   const closeForm = () => setFormRow(null)
 
   const saveRow = async () => {
+    const missingFields = requiredApplicantFields
+      .filter((key) => !String(formRow[key] || '').trim())
+      .map((key) => columns.find((column) => column.key === key)?.label)
+    if (!formRow.birthday) missingFields.push('Birthday (DD/MM/YY)')
+    if (!formRow.employmentStatus?.length) missingFields.push('Current Employment')
+    if (missingFields.length) {
+      setError(`Please complete: ${missingFields.join(', ')}.`)
+      return
+    }
+    if (!isValidEmail(formRow.email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (!isValidContactNumber(formRow.contactNo)) {
+      setError('Contact number must contain 7 to 15 digits and use only valid phone characters.')
+      return
+    }
+
     setSaving(true)
     setError('')
     try {
@@ -554,12 +595,23 @@ function Gip() {
 
                   return (
                     <TextField
+                      error={
+                        (column.key === 'email' && Boolean(formRow.email) && !isValidEmail(formRow.email)) ||
+                        (column.key === 'contactNo' && Boolean(formRow.contactNo) && !isValidContactNumber(formRow.contactNo))
+                      }
+                      helperText={
+                        column.key === 'email' && formRow.email && !isValidEmail(formRow.email)
+                          ? 'Enter a valid email address.'
+                          : column.key === 'contactNo' && formRow.contactNo && !isValidContactNumber(formRow.contactNo)
+                          ? 'Use 7 to 15 digits.'
+                          : undefined
+                      }
                       key={column.key}
                       label={column.label}
                       onChange={updateField}
-                      required={column.key === 'lastName' || column.key === 'firstName'}
+                      required={requiredApplicantFields.includes(column.key)}
                       size="small"
-                      type={isDateField ? 'date' : 'text'}
+                      type={column.key === 'email' ? 'email' : isDateField ? 'date' : 'text'}
                       value={formRow[column.key]}
                     />
                   )

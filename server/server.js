@@ -134,6 +134,14 @@ const applicantSchema = z.object({
   contactNumber: z
     .string()
     .trim()
+    .refine(
+      (value) => value === '' || (
+        /^[+]?[\d\s().-]+$/.test(value) &&
+        value.replace(/\D/g, '').length >= 7 &&
+        value.replace(/\D/g, '').length <= 15
+      ),
+      'Contact number must contain 7 to 15 digits.'
+    )
     .default(''),
 
   // CLASSIFICATIONS
