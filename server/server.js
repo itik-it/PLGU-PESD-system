@@ -99,11 +99,6 @@ const applicantSchema = z.object({
     .trim()
     .min(1, 'Civil status is required.'),
 
-  address: z
-    .string()
-    .trim()
-    .default(''),
-
   barangay: z
     .string()
     .trim()
@@ -137,10 +132,9 @@ const applicantSchema = z.object({
     .refine(
       (value) => value === '' || (
         /^[+]?[\d\s().-]+$/.test(value) &&
-        value.replace(/\D/g, '').length >= 7 &&
-        value.replace(/\D/g, '').length <= 15
+        value.replace(/\D/g, '').length >= 11
       ),
-      'Contact number must contain 7 to 15 digits.'
+      'Contact number must contain 11 digits.'
     )
     .default(''),
 
@@ -432,8 +426,6 @@ app.get(
 
             a.civil_status,
 
-            a.address,
-
             a.barangay,
 
             a.municipality,
@@ -633,9 +625,6 @@ app.get(
             civilStatus:
               applicant.civil_status,
 
-            address:
-              applicant.address || '',
-
             barangay:
               applicant.barangay,
 
@@ -744,8 +733,6 @@ app.post(
 
             civil_status,
 
-            address,
-
             barangay,
 
             municipality,
@@ -761,7 +748,6 @@ app.post(
           )
 
           VALUES (
-            ?,
             ?,
             ?,
             ?,
@@ -795,8 +781,6 @@ app.post(
           applicant.sex,
 
           applicant.civilStatus,
-
-          applicant.address || null,
 
           applicant.barangay,
 
@@ -1114,7 +1098,7 @@ app.put(
       await connection.query(`
         UPDATE applicants
         SET last_name = ?, first_name = ?, middle_name = ?, name_extension = ?,
-            birthdate = ?, age = ?, sex = ?, civil_status = ?, address = ?,
+            birthdate = ?, age = ?, sex = ?, civil_status = ?,
             barangay = ?, municipality = ?, province = ?, course = ?,
             email = ?, contact_number = ?
         WHERE id = ?
@@ -1127,7 +1111,6 @@ app.put(
         calculateAge(applicant.birthdate),
         applicant.sex,
         applicant.civilStatus,
-        applicant.address || null,
         applicant.barangay,
         applicant.municipality,
         applicant.province,
@@ -1344,13 +1327,6 @@ app.use(
 
 // START SERVER
 
-app.listen(
-  port,
-  () => {
-
-    console.log(
-      `LGU PESO server listening on port ${port}`
-    )
-
-  }
-)
+app.listen(port, () => {
+  console.log(`LGU PESO server listening on port ${port}`);
+});

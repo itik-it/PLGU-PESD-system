@@ -112,8 +112,6 @@ CREATE TABLE IF NOT EXISTS applicants (
 
     civil_status VARCHAR(30) NOT NULL,
 
-    address VARCHAR(255) NULL,
-
     barangay VARCHAR(100) NOT NULL,
 
     municipality VARCHAR(100) NOT NULL,

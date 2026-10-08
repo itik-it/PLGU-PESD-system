@@ -174,7 +174,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: clamp(24px, 4vw, 48px);
+  padding: 44px clamp(24px, 4vw, 48px);
   background:
     radial-gradient(circle at 100% 0%, rgba(77, 119, 91, 0.1), transparent 30%),
     #f4f7f5;
@@ -185,10 +185,10 @@
   width: 100%;
   flex: 0 0 auto;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  margin: 0 auto 24px;
+  margin: 0 auto 16px;
 }
 
 .gip-eyebrow {
@@ -220,7 +220,7 @@
 
 .gip-page-title {
   color: var(--forest-dark);
-  font-size: clamp(1.55rem, 3vw, 2.25rem) !important;
+  font-size: clamp(1.7rem, 3vw, 2.35rem) !important;
   font-weight: 800 !important;
   letter-spacing: -0.04em !important;
 }
@@ -269,7 +269,7 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid #dce8df;
-  border-radius: 18px !important;
+  border-radius: 12px !important;
   background: rgba(255, 255, 255, 0.92) !important;
   box-shadow: 0 14px 35px rgba(30, 68, 45, 0.08) !important;
 }
@@ -279,13 +279,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 20px 22px;
+  min-height: 114px;
+  padding: 16px 18px;
   border-bottom: 1px solid #e4ece6;
 }
 
 .gip-section-title {
   color: var(--ink);
-  font-size: 1.05rem !important;
+  font-size: 1.1rem !important;
   font-weight: 800 !important;
 }
 
@@ -301,7 +302,7 @@
 }
 
 .gip-search {
-  width: min(100%, 300px);
+  width: min(100%, 315px);
   background: #fff;
 }
 
@@ -311,7 +312,7 @@
 
 .gip-add-button {
   min-height: 40px;
-  border-radius: 10px !important;
+  border-radius: 8px !important;
   background: var(--forest-dark) !important;
   box-shadow: 0 5px 12px rgba(24, 61, 45, 0.18) !important;
   font-weight: 700 !important;
@@ -340,16 +341,17 @@
 }
 
 .gip-table {
-  min-width: 2200px;
+  min-width: 900px;
+  table-layout: fixed;
 }
 
 .gip-table .MuiTableCell-root {
-  min-width: 110px;
-  max-width: 190px;
-  padding: 12px 10px;
+  min-width: 0;
+  max-width: none;
+  padding: 13px 12px;
   color: var(--ink);
   font-size: 0.72rem;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -371,27 +373,31 @@
   font-weight: 700 !important;
 }
 
-.gip-table .gip-group-header {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  min-width: 0;
-  background: var(--forest-dark);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 .gip-table .gip-column-header {
   position: sticky;
-  top: 37px;
+  top: 0;
   z-index: 2;
-  background: #edf4ef;
-  color: #365443;
+  background: #edf5f0;
+  color: #2b5141;
+  font-size: 0.7rem;
   font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   white-space: normal;
+}
+
+.gip-table .gip-column-header:nth-child(1) { width: 25%; }
+.gip-table .gip-column-header:nth-child(2) { width: 16%; }
+.gip-table .gip-column-header:nth-child(3) { width: 14%; }
+.gip-table .gip-column-header:nth-child(4) { width: 14%; }
+.gip-table .gip-column-header:nth-child(5) { width: 22%; }
+.gip-table .gip-column-header:nth-child(6) { width: 9%; }
+
+.gip-email-cell {
+  display: block;
+  margin-top: 4px;
+  color: #82908a;
+  font-size: 0.65rem;
 }
 
 .gip-table .gip-data-row {
@@ -407,10 +413,18 @@
   position: sticky;
   right: 0;
   z-index: 1;
-  min-width: 130px;
+  min-width: 0;
+  width: 9%;
   background: #fff;
   white-space: nowrap;
   box-shadow: -5px 0 10px rgba(23, 55, 37, 0.04);
+}
+
+.gip-table .gip-actions-header {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  background: #edf5f0;
 }
 
 .gip-table .gip-data-row:hover .gip-actions-cell {
@@ -422,15 +436,65 @@
   outline-offset: -3px;
 }
 
+.gip-table-footer {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 56px;
+  padding: 0 18px;
+  color: #77877e;
+  font-size: 0.72rem;
+}
+
+.gip-table-footer strong {
+  padding: 6px 15px;
+  border: 1px solid #d6ded9;
+  border-radius: 5px;
+  color: #455b4e;
+  font-weight: 500;
+}
+
+.gip-pagination-arrows {
+  display: flex;
+  gap: 19px;
+  margin-left: auto;
+  color: #b5c0ba;
+  font-size: 1.45rem;
+}
+
 .gip-actions-cell .MuiIconButton-root {
   margin: 0 2px;
   border-radius: 8px;
+}
+
+.gip-action-icon {
+  width: 19px;
+  height: 19px;
+  display: block;
+  fill: currentColor;
 }
 
 .gip-details-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 15px 24px;
+}
+
+.gip-detail {
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2eae5;
+}
+
+.gip-detail dt {
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gip-detail dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .gip-form-grid {
@@ -597,23 +661,6 @@
   background: var(--forest);
 }
 
-.gip-detail {
-  min-width: 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e2eae5;
-}
-
-.gip-detail dt {
-  color: var(--muted);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.gip-detail dd {
-  margin: 3px 0 0;
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 680px) {
   .program-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -642,6 +689,11 @@
 
   .gip-table-toolbar {
     padding: 16px;
+  }
+
+  .gip-table {
+    min-width: 760px;
+    table-layout: auto;
   }
 
   .gip-toolbar-actions {

@@ -22,13 +22,25 @@ import {
   Typography,
 } from '@mui/material';
 
+const EditIcon = () => (
+  <svg aria-hidden="true" className="gip-action-icon" viewBox="0 0 24 24">
+    <path d="m16.7 3.3 4 4L8 20H4v-4L16.7 3.3Zm-1.4 1.4L5.5 14.5V18h3.5L18.8 8.2l-3.5-3.5Z" />
+  </svg>
+)
+
+const DeleteIcon = () => (
+  <svg aria-hidden="true" className="gip-action-icon" viewBox="0 0 24 24">
+    <path d="M6 20V7h12v13H6Zm9-16h3v2H6V4h3l1-1h4l1 1ZM8 9v9h2V9H8Zm6 0v9h2V9h-2Z" />
+  </svg>
+)
+
 const columns = [
   { key: 'lastName', label: 'Last Name', group: 'beneficiary' },
   { key: 'firstName', label: 'First Name', group: 'beneficiary' },
   { key: 'middleName', label: 'Middle Name', group: 'beneficiary' },
   { key: 'extensionName', label: 'Extension Name', group: 'beneficiary' },
   { key: 'birthday', label: 'Birthday (DD/MM/YY)', group: 'beneficiary' },
-  { key: 'address', label: 'Address', group: 'beneficiary' },
+  
   { key: 'barangay', label: 'Barangay', group: 'beneficiary' },
   { key: 'cityMunicipality', label: 'City/Municipality', group: 'beneficiary' },
   { key: 'province', label: 'Province', group: 'beneficiary' },
@@ -48,6 +60,14 @@ const columns = [
   { key: 'supportingDocs', label: 'Supporting Docs', group: 'requirements' },
   { key: 'employmentStatus', label: 'Current Employment', group: 'employment' },
   { key: 'dateApplied', label: 'Date Applied', group: 'employment' },
+]
+
+const tableColumns = [
+  { key: 'beneficiaryName', label: 'Beneficiary Name' },
+  { key: 'barangay', label: 'Barangay' },
+  { key: 'contactNo', label: 'Contact No.' },
+  { key: 'dateApplied', label: 'Date Applied' },
+  { key: 'employmentStatus', label: 'Employment Status' },
 ]
 
 const employmentOptions = [
@@ -70,7 +90,7 @@ const isValidEmail = (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valu
 const isValidContactNumber = (value) => {
   if (!value) return true
   const digits = value.replace(/\D/g, '')
-  return /^[+]?[\d\s().-]+$/.test(value) && digits.length >= 7 && digits.length <= 15
+  return /^[+]?[\d\s().-]+$/.test(value) && digits.length <= 11
 }
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
@@ -82,7 +102,7 @@ const fromApiApplicant = (applicant) => ({
   middleName: applicant.middleName || '',
   extensionName: applicant.extensionName || '',
   birthday: applicant.birthdate || '',
-  address: applicant.address || '',
+  
   barangay: applicant.barangay || '',
   cityMunicipality: applicant.municipality || '',
   province: applicant.province || '',
@@ -113,7 +133,7 @@ const toApiApplicant = (applicant) => ({
   age: applicant.age,
   sex: applicant.sex,
   civilStatus: applicant.civilStatus,
-  address: applicant.address,
+  
   barangay: applicant.barangay,
   municipality: applicant.cityMunicipality,
   province: applicant.province,
@@ -314,6 +334,10 @@ function Gip() {
     <main className="gip-page">
       <Box className="gip-page-heading">
         <Box>
+          <Button className="gip-home-button" href="/">
+            <span aria-hidden="true">←</span>
+            Back to Dashboard
+          </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
           <Typography className="gip-page-title" component="h1" variant="h5">
             GIP Beneficiary Records
@@ -322,20 +346,13 @@ function Gip() {
             Manage, search, and review all registered beneficiaries.
           </Typography>
         </Box>
-        <Box className="gip-record-count">
-          <strong>{rows.length}</strong>
-          <span>Total records</span>
-        </Box>
       </Box>
 
       <Paper className="gip-table-card" elevation={0}>
         <Box className="gip-table-toolbar">
           <Box>
             <Typography className="gip-section-title" component="h2" variant="h6">
-              Applicant list
-            </Typography>
-            <Typography className="gip-section-hint" component="p" variant="body2">
-              {filteredRows.length} {filteredRows.length === 1 ? 'record' : 'records'} shown
+              Applicant List · {rows.length} {rows.length === 1 ? 'beneficiary' : 'beneficiaries'}
             </Typography>
           </Box>
           {error && (
@@ -353,7 +370,7 @@ function Gip() {
               value={search}
             />
             <Button className="gip-add-button" variant="contained" onClick={openAddForm}>
-              <span aria-hidden="true" className="gip-button-symbol">+</span>
+              <span aria-hidden="true" className="gip-button-symbol"></span>
               Add Applicant
             </Button>
           </Box>
@@ -363,33 +380,20 @@ function Gip() {
           <Table stickyHeader aria-label="GIP beneficiary records" className="gip-table" size="small">
           <TableHead>
             <TableRow>
-              {Object.entries(groupLabels).map(([group, label]) => (
-                <TableCell
-                  align="center"
-                  colSpan={columns.filter((column) => column.group === group).length}
-                  key={group}
-                  className="gip-group-header"
-                >
-                  {label}
-                </TableCell>
-              ))}
-              <TableCell align="center" className="gip-group-header">ACTIONS</TableCell>
-            </TableRow>
-            <TableRow>
-              {columns.map((column) => (
-                <TableCell className="gip-column-header" key={column.key}>
+              {tableColumns.map((column) => (
+                <TableCell className="gip-column-header gip-simple-header" key={column.key}>
                   {column.label}
                 </TableCell>
               ))}
-              <TableCell className="gip-column-header">Manage</TableCell>
+              <TableCell className="gip-column-header gip-actions-header">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell align="center" colSpan={columns.length + 1}>Loading applicants...</TableCell></TableRow>
+              <TableRow><TableCell align="center" colSpan={tableColumns.length + 1}>Loading applicants...</TableCell></TableRow>
             ) : filteredRows.length === 0 ? (
               <TableRow>
-                <TableCell align="center" colSpan={columns.length + 1}>
+                <TableCell align="center" colSpan={tableColumns.length + 1}>
                   {search ? 'No applicants match your search.' : 'No applicants yet. Add an applicant to begin.'}
                 </TableCell>
               </TableRow>
@@ -408,7 +412,15 @@ function Gip() {
                 role="button"
                 tabIndex={0}
               >
-                {columns.map((column) => {
+                {tableColumns.map((column) => {
+                  if (column.key === 'beneficiaryName') {
+                    return (
+                      <TableCell key={column.key}>
+                        <strong>{`${row.lastName}, ${[row.firstName, row.middleName].filter(Boolean).join(' ')}`}</strong>
+                        <span className="gip-email-cell">{row.email || 'No email provided'}</span>
+                      </TableCell>
+                    )
+                  }
                   if (column.key === 'employmentStatus') {
                     return (
                       <TableCell key={column.key}>
@@ -425,9 +437,7 @@ function Gip() {
                   }
 
                   let value
-                  if (requirementKeys.has(column.key)) {
-                    value = row[column.key] ? '✓' : '—'
-                  } else if (column.key === 'birthday' || column.key === 'dateApplied') {
+                  if (column.key === 'dateApplied') {
                     value = formatDate(row[column.key])
                   } else {
                     value = displayValue(row[column.key], '—')
@@ -436,10 +446,10 @@ function Gip() {
                 })}
                 <TableCell className="gip-actions-cell" onClick={(event) => event.stopPropagation()}>
                   <IconButton aria-label="Edit applicant" color="primary" onClick={() => openEditForm(row)} size="small">
-                    <span aria-hidden="true">✎</span>
+                    <EditIcon />
                   </IconButton>
                   <IconButton aria-label="Delete applicant" color="error" onClick={() => setDeleteTarget(row)} size="small">
-                    <span aria-hidden="true">×</span>
+                    <DeleteIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -447,6 +457,15 @@ function Gip() {
           </TableBody>
           </Table>
         </TableContainer>
+        <Box className="gip-table-footer">
+              <span>Rows per page</span>
+              <strong>5</strong>
+              <span>{filteredRows.length ? `1–${filteredRows.length}` : '0'} of {filteredRows.length}</span>
+              <Box className="gip-pagination-arrows" aria-hidden="true">
+                <span>‹</span>
+                <span>›</span>
+              </Box>
+        </Box>
       </Paper>
 
       <Dialog fullWidth maxWidth="md" onClose={() => setSelectedRow(null)} open={Boolean(selectedRow)}>
