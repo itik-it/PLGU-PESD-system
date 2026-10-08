@@ -9,6 +9,9 @@ import Jobvacancy from './page/jobvacancy.jsx'
 import Ofw from './page/ofw.jsx'
 import Spes from './page/spes.jsx'
 import Tupad from './page/tupad.jsx'
+import Logo from './assets/NV Logo.jpg'
+import Pesd from './assets/pesd.jpg'
+import Gips from './assets/gip.png'
 import './App.css'
 
 const programRoutes = {
@@ -60,8 +63,8 @@ function App() {
     <div className="app-shell">
       <header className="site-header">
         <div className="header-logos" aria-label="LGU and system logo placeholders">
-          <div className="header-logo" aria-hidden="true">LGU</div>
-          <div className="header-logo" aria-hidden="true">PESO</div>
+          <img src={Logo} alt="Logo" />
+          <img src={Pesd} alt="PESD" />
         </div>
         <div className="header-copy">
           <h1>PROGRAMS TRACKING &amp; DATABASE</h1>
