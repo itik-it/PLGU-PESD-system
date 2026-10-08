@@ -31,41 +31,26 @@ function App() {
 
   // Slim header on top; the page fills the rest of the screen.
   return (
-    <div className="app-shell">
-      <header className="site-header">
-        <div className="header-logos" aria-label="LGU and system logo placeholders">
-          <div className="header-logo" aria-hidden="true">LGU</div>
-          <div className="header-logo" aria-hidden="true">PESO</div>
-        </div>
-        <div className="header-copy">
-          <h1>PROGRAMS TRACKING &amp; DATABASE</h1>
-          <p>LGU NUEVA VIZCAYA</p>
-        </div>
-      </header>
-
-      <main className="main-content">
-        <div className="intro">
-          <h2>PROGRAMS</h2>
-          <p>Select a program to view its tracking database</p>
-        </div>
-
-        <section className="program-grid" aria-label="Programs">
-          {programs.map((program) => (
-            <a
-              className="program-card"
-              href={programRoutes[program.name]?.path || '#'}
-              key={program.name}
-            >
-              <div className="program-logo" aria-label={`${program.name} logo placeholder`}>
-                <span>{program.logo}</span>
-              </div>
-              <h3>{program.name}</h3>
-              <span className="open-link">Open <span aria-hidden="true">→</span></span>
-            </a>
-          ))}
-        </section>
-      </main>
-    </div>
+    <Box sx={{ height: '100svh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
+      <SiteHeader compact />
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          // gip.jsx sets its own 100svh height; fit it into the space under the header instead.
+          '& > .gip-page': { height: '100%' },
+        }}
+      >
+        {route.adminOnly && user.role !== 'admin' ? (
+          <Alert severity="warning" sx={{ m: 4 }}>
+            Administrator access is required to open this page.
+          </Alert>
+        ) : (
+          <Page />
+        )}
+      </Box>
+    </Box>
   )
 }
 
