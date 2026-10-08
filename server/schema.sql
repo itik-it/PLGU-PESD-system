@@ -27,7 +27,11 @@ CREATE TABLE IF NOT EXISTS users (
 
     full_name VARCHAR(150) NOT NULL,
 
+    role ENUM('admin', 'staff') NOT NULL DEFAULT 'staff',
+
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+
+    last_login_at DATETIME NULL,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

@@ -21,6 +21,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { request } from '../api/client.js';
 
 const EditIcon = () => (
   <svg aria-hidden="true" className="gip-action-icon" viewBox="0 0 24 24">
@@ -93,8 +94,6 @@ const isValidContactNumber = (value) => {
   return /^[+]?[\d\s().-]+$/.test(value) && digits.length <= 11
 }
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-
 const fromApiApplicant = (applicant) => ({
   id: applicant.id,
   lastName: applicant.lastName || '',
@@ -153,24 +152,6 @@ const toApiApplicant = (applicant) => ({
   },
   supportingDocuments: applicant.supportingDocs,
 })
-
-const request = async (path, options = {}) => {
-  const response = await fetch(`${apiUrl}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}))
-    const validationMessage = Array.isArray(body.errors)
-      ? body.errors
-        .map((issue) => issue.message)
-        .filter(Boolean)
-        .join(' ')
-      : ''
-    throw new Error(validationMessage || body.message || 'The server could not complete the request.')
-  }
-  return response.status === 204 ? null : response.json()
-}
 
 const groupLabels = {
   beneficiary: 'BENEFICIARY INFORMATION',

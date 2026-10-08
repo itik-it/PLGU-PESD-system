@@ -1,44 +1,16 @@
 require('dotenv').config()
 
+const cookieParser = require('cookie-parser')
 const cors = require('cors')
 const express = require('express')
 const helmet = require('helmet')
-const mysql = require('mysql2/promise')
 const { z } = require('zod')
+
+const { authRoutes, usersRoutes, requireAuth } = require('./auth')
+const { gipPool, usersPool } = require('./db')
 
 const app = express()
 const port = Number(process.env.PORT || 3000)
-
-
-// DATABASE CONNECTIONS
-
-// GIP database
-const gipPool = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_GIP_NAME || 'lgu_gip',
-  waitForConnections: true,
-  connectionLimit: Number(
-    process.env.DB_CONNECTION_LIMIT || 10
-  ),
-  dateStrings: true,
-})
-
-// Login database
-const usersPool = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_USERS_NAME || 'lgu_users',
-  waitForConnections: true,
-  connectionLimit: Number(
-    process.env.DB_CONNECTION_LIMIT || 10
-  ),
-  dateStrings: true,
-})
 
 
 // MIDDLEWARE
@@ -50,6 +22,7 @@ app.use(
     origin:
       process.env.CLIENT_ORIGIN ||
       'http://localhost:5173',
+    credentials: true,
   })
 )
 
@@ -58,6 +31,18 @@ app.use(
     limit: '1mb',
   })
 )
+
+app.use(cookieParser())
+
+
+// AUTHENTICATION
+
+app.use('/api/auth', authRoutes)
+app.use('/api/users', usersRoutes)
+
+// Everything under /api/gip now requires a logged-in user.
+// Keep this line ABOVE the /api/gip routes below.
+app.use('/api/gip', requireAuth)
 
 // VALIDATION SCHEMA
 

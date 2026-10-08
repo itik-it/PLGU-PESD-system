@@ -1,70 +1,41 @@
-import { useEffect, useState } from 'react'
-import Gip from './page/gip.jsx'
-import Sagut from './page/sagut.jsx'
-import Bridging from './page/bridging.jsx'
-import Doktor from './page/doktor.jsx'
-import Livelihood from './page/livelihood.jsx'
-import Jobseekers from './page/jobseeker.jsx'
-import Jobvacancy from './page/jobvacancy.jsx'
-import Ofw from './page/ofw.jsx'
-import Spes from './page/spes.jsx'
-import Tupad from './page/tupad.jsx'
-import Logo from './assets/NV Logo.jpg'
-import Pesd from './assets/pesd.jpg'
-import Gips from './assets/gip.png'
+import { Alert, Box, CircularProgress } from '@mui/material'
+import { useAuth } from './auth/AuthContext.jsx'
+import SiteHeader from './components/SiteHeader.jsx'
+import { routes } from './config/routes.js'
+import Home from './page/home.jsx'
+import { useRouter } from './router.jsx'
+// Still needed: gip.jsx uses the gip-* classes in this file until it is moved to MUI.
 import './App.css'
 
-const programRoutes = {
-  GIP: { path: '/gip', component: Gip },
-  SAGUT: { path: '/sagut', component: Sagut },
-  BRIDGING: { path: '/bridging', component: Bridging },
-  DOKTOR: { path: '/doktor', component: Doktor },
-  LIVELIHOOD: { path: '/livelihood', component: Livelihood },
-  JOBSEEKERS: { path: '/jobseeker', component: Jobseekers },
-  JOBVACANCY: { path: '/jobvacancy', component: Jobvacancy },
-  OFW: { path: '/ofw', component: Ofw },
-  SPES: { path: '/spes', component: Spes },
-  TUPAD: { path: '/tupad', component: Tupad },
-}
-
-const programs = [
-  { name: 'GIP', logo: 'GIP' },
-  { name: 'SAGUT', logo: 'SAGUT' },
-  { name: 'BRIDGING', logo: 'BR' },
-  { name: 'DOKTOR', logo: 'DOK' },
-  { name: 'LIVELIHOOD', logo: 'LIV' },
-  { name: 'JOBSEEKERS', logo: 'JS' },
-  { name: 'JOBVACANCY', logo: 'JV' },
-  { name: 'OFW', logo: 'OFW' },
-  { name: 'SPES', logo: 'SPES' },
-  { name: 'TUPAD', logo: 'TUPAD' },
-]
-
 function App() {
-  const [path, setPath] = useState(window.location.pathname)
+  const { user, loading } = useAuth()
+  const { path } = useRouter()
 
-  useEffect(() => {
-    const handlePopState = () => setPath(window.location.pathname)
-    window.addEventListener('popstate', handlePopState)
-
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
-
-  const activeRoute = Object.values(programRoutes).find(
-    (route) => route.path === path,
-  )
-
-  if (activeRoute) {
-    const Page = activeRoute.component
-    return <Page />
+  if (loading) {
+    return (
+      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '100svh' }}>
+        <CircularProgress color="secondary" />
+      </Box>
+    )
   }
 
+  const route = routes.find((item) => item.path === path)
+
+  // "/" or an unknown path -> home cards
+  if (!route) return <Home />
+
+  // Page needs a login -> show home with the login dialog for that page
+  if (!user) return <Home initialProgram={route} />
+
+  const Page = route.component
+
+  // Slim header on top; the page fills the rest of the screen.
   return (
     <div className="app-shell">
       <header className="site-header">
         <div className="header-logos" aria-label="LGU and system logo placeholders">
-          <img src={Logo} alt="Logo" />
-          <img src={Pesd} alt="PESD" />
+          <div className="header-logo" aria-hidden="true">LGU</div>
+          <div className="header-logo" aria-hidden="true">PESO</div>
         </div>
         <div className="header-copy">
           <h1>PROGRAMS TRACKING &amp; DATABASE</h1>
