@@ -740,6 +740,10 @@
   width: 100%;
 }
 
+.gip-date-row-neighbor {
+  margin-top: 24px !important;
+}
+
 .gip-employment-control {
   grid-column: span 2;
 }
@@ -875,6 +879,10 @@
 
   .gip-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .gip-date-row-neighbor {
+    margin-top: 0 !important;
   }
 
   .gip-form-section:has(.gip-requirement-checkbox) .gip-form-grid {

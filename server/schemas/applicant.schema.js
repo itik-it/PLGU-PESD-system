@@ -18,8 +18,8 @@ const applicantSchema = z.object({
       'Birthdate cannot be in the future.'
     ),
 
-  sex: requiredText('Sex is required.'),
-  civilStatus: requiredText('Civil status is required.'),
+  sex: z.enum(['Male', 'Female'], { error: 'Sex is required.' }),
+  civilStatus: z.enum(['Single', 'Married', 'Widowed'], { error: 'Civil status is required.' }),
   barangay: requiredText('Barangay is required.'),
   municipality: requiredText('Municipality is required.'),
   province: requiredText('Province is required.'),
@@ -33,11 +33,8 @@ const applicantSchema = z.object({
     .string()
     .trim()
     .refine(
-      (value) =>
-        value === '' ||
-        (/^[+]?[\d\s().-]+$/.test(value) &&
-          value.replace(/\D/g, '').length === 11),
-      'Contact number must contain 11 digits.'
+      (value) => value === '' || /^09\d{9}$/.test(value),
+      'Contact number must be 11 digits and start with 09.'
     )
     .default(''),
 

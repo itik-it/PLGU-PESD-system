@@ -12,6 +12,7 @@ import {
   FormControlLabel,
   IconButton,
   LinearProgress,
+  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -94,8 +95,7 @@ const requiredApplicantFields = [
 const isValidEmail = (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 const isValidContactNumber = (value) => {
   if (!value) return true
-  const digits = value.replace(/\D/g, '')
-  return /^[+]?[\d\s().-]+$/.test(value) && digits.length === 11
+  return /^09\d{9}$/.test(value)
 }
 
 const currentDate = new Date()
@@ -275,13 +275,10 @@ function Gip() {
   }, [rows, search])
 
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
-  const pagedRows = filteredRows.slice(page * rowsPerPage, (page + 1) * rowsPerPage)
-  const firstRowNumber = filteredRows.length ? page * rowsPerPage + 1 : 0
-  const lastRowNumber = Math.min((page + 1) * rowsPerPage, filteredRows.length)
-
-  useEffect(() => {
-    setPage((currentPage) => Math.min(currentPage, pageCount - 1))
-  }, [pageCount])
+  const visiblePage = Math.min(page, pageCount - 1)
+  const pagedRows = filteredRows.slice(visiblePage * rowsPerPage, (visiblePage + 1) * rowsPerPage)
+  const firstRowNumber = filteredRows.length ? visiblePage * rowsPerPage + 1 : 0
+  const lastRowNumber = Math.min((visiblePage + 1) * rowsPerPage, filteredRows.length)
 
   const openAddForm = () => setFormRow(createEmptyRow())
   const openEditForm = (row) => setFormRow({ ...row })
@@ -295,7 +292,7 @@ function Gip() {
     if (!formRow.birthday) missingFields.push('Birthdate')
     if (!formRow.employmentStatus?.length) missingFields.push('Current Employment')
     if (missingFields.length) {
-      setError(`Please complete: ${missingFields.join(', ')}.`)
+      setError('Please fill in all required fields.')
       return
     }
     if (!isValidEmail(formRow.email)) {
@@ -303,7 +300,7 @@ function Gip() {
       return
     }
     if (!isValidContactNumber(formRow.contactNo)) {
-      setError('Contact number must contain exactly 11 digits and use only valid phone characters.')
+      setError('Contact number must be 11 digits and start with 09.')
       return
     }
     if (!isValidDate(formRow.birthday)) {
@@ -498,7 +495,7 @@ function Gip() {
           <Box className="gip-pagination-arrows">
             <button
               aria-label="Previous page"
-              disabled={page === 0}
+              disabled={visiblePage === 0}
               onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
               type="button"
             >
@@ -506,7 +503,7 @@ function Gip() {
             </button>
             <button
               aria-label="Next page"
-              disabled={page >= pageCount - 1}
+              disabled={visiblePage >= pageCount - 1}
               onClick={() => setPage((currentPage) => Math.min(pageCount - 1, currentPage + 1))}
               type="button"
             >
@@ -625,18 +622,13 @@ function Gip() {
                       >
                         <Typography variant="body2">{column.label}</Typography>
                         <Typography
-                          aria-label={selectedRow[column.key] ? 'Submitted' : 'Missing'}
+                          aria-label={selectedRow[column.key] ? 'Submitted' : 'Not submitted'}
                           className={`gip-requirement-check ${selectedRow[column.key] ? 'is-submitted' : ''}`}
                           component="span"
                           role="img"
                         >
                           {selectedRow[column.key] ? '✓' : '○'}
                         </Typography>
-                        {!selectedRow[column.key] && (
-                          <Typography className="gip-requirement-missing" variant="caption">
-                            Missing
-                          </Typography>
-                        )}
                       </Box>
                     ))}
                   </Box>
@@ -690,12 +682,34 @@ function Gip() {
               <Box className="gip-form-grid">
                 {columns.filter((column) => column.group === group).map((column) => {
                   const updateField = (event) => {
-                    const value = event.target.value
+                    const value = column.key === 'contactNo'
+                      ? event.target.value.replace(/\D/g, '').slice(0, 11)
+                      : event.target.value
+                    if ((column.key === 'birthday' || column.key === 'dateApplied') && value > today) {
+                      setError(column.key === 'birthday'
+                        ? 'Birthdate cannot be in the future.'
+                        : 'Date applied cannot be in the future.')
+                      return
+                    }
                     setFormRow({
                       ...formRow,
                       [column.key]: value,
                       ...(column.key === 'birthday' ? { age: calculateAge(value) } : {}),
                     })
+                  }
+
+                  const validateDateField = (event) => {
+                    if (event.target.value > today) {
+                      setError(column.key === 'birthday'
+                        ? 'Birthdate cannot be in the future.'
+                        : 'Date applied cannot be in the future.')
+                    }
+                  }
+
+                  const validateContactField = (event) => {
+                    if (event.target.value && !isValidContactNumber(event.target.value)) {
+                      setError('Contact number must be 11 digits and start with 09.')
+                    }
                   }
 
                   if (column.key === 'employmentStatus') {
@@ -768,6 +782,27 @@ function Gip() {
                     )
                   }
 
+                  if (column.key === 'sex' || column.key === 'civilStatus') {
+                    const options = column.key === 'sex'
+                      ? ['Male', 'Female']
+                      : ['Single', 'Married', 'Widowed']
+                    return (
+                      <TextField
+                        key={column.key}
+                        label={column.label}
+                        onChange={updateField}
+                        required
+                        select
+                        size="small"
+                        value={formRow[column.key]}
+                      >
+                        {options.map((option) => (
+                          <MenuItem key={option} value={option}>{option}</MenuItem>
+                        ))}
+                      </TextField>
+                    )
+                  }
+
                   const isDateField = column.key === 'birthday' || column.key === 'dateApplied'
                   if (isDateField) {
                     return (
@@ -782,6 +817,7 @@ function Gip() {
                             'aria-label': column.label,
                             max: today,
                           }}
+                          onBlur={validateDateField}
                           onChange={updateField}
                           required={column.key === 'birthday'}
                           size="small"
@@ -794,6 +830,9 @@ function Gip() {
 
                   return (
                     <TextField
+                      className={column.key === 'extensionName' || column.key === 'barangay'
+                        ? 'gip-date-row-neighbor'
+                        : undefined}
                       error={
                         (column.key === 'email' && Boolean(formRow.email) && !isValidEmail(formRow.email)) ||
                         (column.key === 'contactNo' && Boolean(formRow.contactNo) && !isValidContactNumber(formRow.contactNo))
@@ -802,15 +841,19 @@ function Gip() {
                         column.key === 'email' && formRow.email && !isValidEmail(formRow.email)
                           ? 'Enter a valid email address.'
                           : column.key === 'contactNo' && formRow.contactNo && !isValidContactNumber(formRow.contactNo)
-                          ? 'Use exactly 11 digits.'
+                          ? 'Contact number must be 11 digits and start with 09.'
                           : undefined
                       }
                       key={column.key}
                       label={column.label}
+                      onBlur={column.key === 'contactNo' ? validateContactField : undefined}
                       onChange={updateField}
                       required={requiredApplicantFields.includes(column.key)}
                       size="small"
                       type={column.key === 'email' ? 'email' : isDateField ? 'date' : 'text'}
+                      inputProps={column.key === 'contactNo'
+                        ? { inputMode: 'numeric', maxLength: 11 }
+                        : undefined}
                       value={formRow[column.key]}
                     />
                   )
