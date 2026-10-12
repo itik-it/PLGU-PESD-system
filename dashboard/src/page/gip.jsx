@@ -23,8 +23,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { request } from '../api/client.js';
+import { api } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
+import BatchList from '../components/BatchList.jsx';
 
 const EditIcon = () => (
   <svg aria-hidden="true" className="gip-action-icon" viewBox="0 0 24 24">
@@ -238,7 +239,8 @@ const calculateAge = (birthday) => {
   return age >= 0 ? String(age) : ''
 }
 
-function Gip() {
+// The table for ONE batch. `batch` comes from the batch list screen.
+function GipTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -251,11 +253,13 @@ function Gip() {
   const [page, setPage] = useState(0)
 
   const canDelete = user?.role === 'admin'
+  const isClosed = batch.status === 'closed'
+  const applicantsPath = `/gip/batches/${batch.id}/applicants`
 
   useEffect(() => {
     const loadApplicants = async () => {
       try {
-        const applicants = await request('/gip/applicants')
+        const applicants = await api.get(applicantsPath)
         setRows(applicants.map(fromApiApplicant))
       } catch (loadError) {
         setError(loadError.message)
@@ -264,7 +268,7 @@ function Gip() {
       }
     }
     loadApplicants()
-  }, [])
+  }, [applicantsPath])
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -316,18 +320,14 @@ function Gip() {
     setError('')
     try {
       const isNew = formRow.id === null
-      const saveResponse = await request(
-        isNew ? '/gip/applicants' : `/gip/applicants/${formRow.id}`,
-        {
-          method: isNew ? 'POST' : 'PUT',
-          body: JSON.stringify(toApiApplicant(formRow)),
-        },
-      )
+      const saveResponse = isNew
+        ? await api.post(applicantsPath, toApiApplicant(formRow))
+        : await api.put(`${applicantsPath}/${formRow.id}`, toApiApplicant(formRow))
       let savedRow
       if (isNew) {
         savedRow = { ...formRow, id: saveResponse.applicantId }
       } else {
-        const applicants = await request('/gip/applicants')
+        const applicants = await api.get(applicantsPath)
         const updatedApplicant = applicants.find((row) => row.id === formRow.id)
         if (!updatedApplicant) throw new Error('Updated applicant could not be loaded.')
         savedRow = fromApiApplicant(updatedApplicant)
@@ -348,7 +348,7 @@ function Gip() {
   const deleteRow = async () => {
     try {
       setError('')
-      await request(`/gip/applicants/${deleteTarget.id}`, { method: 'DELETE' })
+      await api.delete(`${applicantsPath}/${deleteTarget.id}`)
       setRows((currentRows) => currentRows.filter((row) => row.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch (deleteError) {
@@ -360,16 +360,18 @@ function Gip() {
     <main className="gip-page">
       <Box className="gip-page-heading">
         <Box>
-          <Button className="gip-home-button" href="/">
+          <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
-            Back to Dashboard
+            All batches
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
           <Typography className="gip-page-title" component="h1" variant="h5">
-            GIP Beneficiary Records
+            GIP Beneficiary Records · {batch.name}
           </Typography>
           <Typography className="gip-page-hint" component="p" variant="body2">
-            Manage, search, and review all registered beneficiaries.
+            {isClosed
+              ? 'This batch is closed. Records are read-only until an administrator reopens it.'
+              : 'Manage, search, and review all registered beneficiaries.'}
           </Typography>
         </Box>
       </Box>
@@ -398,7 +400,7 @@ function Gip() {
               size="small"
               value={search}
             />
-            <Button className="gip-add-button" variant="contained" onClick={openAddForm}>
+            <Button className="gip-add-button" variant="contained" disabled={isClosed} onClick={openAddForm}>
               <span aria-hidden="true" className="gip-button-symbol"></span>
               Add Applicant
             </Button>
@@ -474,10 +476,10 @@ function Gip() {
                   return <TableCell key={column.key}>{value}</TableCell>
                 })}
                 <TableCell className="gip-actions-cell" onClick={(event) => event.stopPropagation()}>
-                  <IconButton aria-label="Edit applicant" color="primary" onClick={() => openEditForm(row)} size="small">
+                  <IconButton aria-label="Edit applicant" color="primary" disabled={isClosed} onClick={() => openEditForm(row)} size="small">
                     <EditIcon />
                   </IconButton>
-                  {canDelete && (
+                  {canDelete && !isClosed && (
                     <IconButton aria-label="Delete applicant" color="error" onClick={() => setDeleteTarget(row)} size="small">
                       <DeleteIcon />
                     </IconButton>
@@ -897,6 +899,15 @@ function Gip() {
       </Dialog>
     </main>
   )
+}
+
+// GIP page: pick a batch first, then show that batch's table.
+function Gip() {
+  const [batch, setBatch] = useState(null)
+
+  if (!batch) return <BatchList onOpen={setBatch} />
+
+  return <GipTable key={batch.id} batch={batch} onBack={() => setBatch(null)} />
 }
 
 export default Gip
