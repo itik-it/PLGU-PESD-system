@@ -84,6 +84,10 @@ export default function Users() {
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box>
+          <Button className="gip-home-button" href="/gip">
+            <span aria-hidden="true">←</span>
+            Back to Dashboard
+          </Button>
           <Typography component="h2" variant="h5" sx={{ fontWeight: 800 }}>
             User Management
           </Typography>
