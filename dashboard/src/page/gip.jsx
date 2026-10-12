@@ -73,6 +73,8 @@ const tableColumns = [
   { key: 'employmentStatus', label: 'Current Employment' },
 ]
 
+const rowsPerPage = 10
+
 const employmentOptions = [
   'Fresh Graduate',
   'First Time Job Seeker',
@@ -246,6 +248,7 @@ function Gip() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(0)
 
   const canDelete = user?.role === 'admin'
 
@@ -271,9 +274,19 @@ function Gip() {
     )))
   }, [rows, search])
 
+  const pageCount = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
+  const pagedRows = filteredRows.slice(page * rowsPerPage, (page + 1) * rowsPerPage)
+  const firstRowNumber = filteredRows.length ? page * rowsPerPage + 1 : 0
+  const lastRowNumber = Math.min((page + 1) * rowsPerPage, filteredRows.length)
+
+  useEffect(() => {
+    setPage((currentPage) => Math.min(currentPage, pageCount - 1))
+  }, [pageCount])
+
   const openAddForm = () => setFormRow(createEmptyRow())
   const openEditForm = (row) => setFormRow({ ...row })
   const closeForm = () => setFormRow(null)
+  const closeError = () => setError('')
 
   const saveRow = async () => {
     const missingFields = requiredApplicantFields
@@ -326,6 +339,7 @@ function Gip() {
         ? [...currentRows, savedRow]
         : currentRows.map((row) => (row.id === savedRow.id ? savedRow : row)))
       setSearch('')
+      setPage(0)
       closeForm()
     } catch (saveError) {
       setError(saveError.message)
@@ -379,7 +393,10 @@ function Gip() {
             <TextField
               aria-label="Search applicants"
               className="gip-search"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value)
+                setPage(0)
+              }}
               placeholder="Search applicants..."
               size="small"
               value={search}
@@ -412,7 +429,7 @@ function Gip() {
                   {search ? 'No applicants match your search.' : 'No applicants yet. Add an applicant to begin.'}
                 </TableCell>
               </TableRow>
-            ) : filteredRows.map((row) => (
+            ) : pagedRows.map((row) => (
               <TableRow
                 hover
                 className="gip-data-row"
@@ -475,13 +492,27 @@ function Gip() {
           </Table>
         </TableContainer>
         <Box className="gip-table-footer">
-              <span>Rows per page</span>
-              <strong>5</strong>
-              <span>{filteredRows.length ? `1–${filteredRows.length}` : '0'} of {filteredRows.length}</span>
-              <Box className="gip-pagination-arrows" aria-hidden="true">
-                <span>‹</span>
-                <span>›</span>
-              </Box>
+          <span>Rows per page</span>
+          <strong>{rowsPerPage}</strong>
+          <span>{firstRowNumber ? `${firstRowNumber}–${lastRowNumber}` : '0'} of {filteredRows.length}</span>
+          <Box className="gip-pagination-arrows">
+            <button
+              aria-label="Previous page"
+              disabled={page === 0}
+              onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
+              type="button"
+            >
+              ‹
+            </button>
+            <button
+              aria-label="Next page"
+              disabled={page >= pageCount - 1}
+              onClick={() => setPage((currentPage) => Math.min(pageCount - 1, currentPage + 1))}
+              type="button"
+            >
+              ›
+            </button>
+          </Box>
         </Box>
       </Paper>
 
@@ -792,6 +823,21 @@ function Gip() {
           <Button onClick={closeForm}>Cancel</Button>
           <Button disabled={saving} onClick={saveRow} variant="contained">
             {saving ? 'Saving...' : 'Save Applicant'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        aria-describedby="gip-error-message"
+        aria-labelledby="gip-error-title"
+        onClose={closeError}
+        open={Boolean(error)}
+      >
+        <DialogTitle id="gip-error-title">Please check the form</DialogTitle>
+        <DialogContent id="gip-error-message">{error}</DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={closeError} variant="contained">
+            OK
           </Button>
         </DialogActions>
       </Dialog>

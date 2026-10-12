@@ -458,8 +458,21 @@
   display: flex;
   gap: 19px;
   margin-left: auto;
-  color: #b5c0ba;
+}
+
+.gip-pagination-arrows button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #718078;
+  cursor: pointer;
   font-size: 1.45rem;
+  line-height: 1;
+}
+
+.gip-pagination-arrows button:disabled {
+  color: #c4cdc8;
+  cursor: default;
 }
 
 .gip-actions-cell .MuiIconButton-root {
