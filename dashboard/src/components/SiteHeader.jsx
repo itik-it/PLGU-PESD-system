@@ -1,8 +1,8 @@
 import { Box, Button, Chip, Typography } from '@mui/material'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useRouter } from '../router.jsx'
-import nvLogo from '../assets/NV Logo.jpg'
-import pesdLogo from '../assets/pesd.jpg'
+import nvLogo from '../assets/NV Logo.png'
+import pesdLogo from '../assets/pesd.png'
 
 // Green top bar. `compact` = slim version used above program pages.
 export default function SiteHeader({ compact = false }) {
@@ -35,7 +35,7 @@ export default function SiteHeader({ compact = false }) {
         minWidth: 0,
       }}
     >
-      <Box sx={{ display: 'flex', gap: compact ? 0.75 : 1, flexShrink: 0 }}>
+      <Box sx={{ display: 'flex' }}>
         {logos.map((logo) => (
           <Box
             key={logo.alt}
@@ -50,8 +50,6 @@ export default function SiteHeader({ compact = false }) {
               overflow: 'hidden',
               borderRadius: '50%',
               flexShrink: 0,
-              bgcolor: '#f5f3ed',
-              border: '2px solid rgba(255, 255, 255, 0.68)',
             }}
           >
             <Box
