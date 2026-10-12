@@ -1,6 +1,8 @@
-import { Avatar, Box, Button, Chip, Typography } from '@mui/material'
+import { Box, Button, Chip, Typography } from '@mui/material'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useRouter } from '../router.jsx'
+import nvLogo from '../assets/NV Logo.jpg'
+import pesdLogo from '../assets/pesd.jpg'
 
 // Green top bar. `compact` = slim version used above program pages.
 export default function SiteHeader({ compact = false }) {
@@ -12,7 +14,11 @@ export default function SiteHeader({ compact = false }) {
     navigate('/')
   }
 
-  const logoSize = compact ? 36 : 56
+  const logoSize = compact ? 38 : 64
+  const logos = [
+    { alt: 'Province of Nueva Vizcaya official seal', src: nvLogo },
+    { alt: 'PESD logo', src: pesdLogo },
+  ]
 
   return (
     <Box
@@ -25,34 +31,56 @@ export default function SiteHeader({ compact = false }) {
         display: 'flex',
         alignItems: 'center',
         gap: 2,
-        flexWrap: 'wrap',
         flexShrink: 0,
+        minWidth: 0,
       }}
     >
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        {['LGU', 'PESO'].map((label) => (
-          <Avatar
-            key={label}
-            aria-hidden="true"
+      <Box sx={{ display: 'flex', gap: compact ? 0.75 : 1, flexShrink: 0 }}>
+        {logos.map((logo) => (
+          <Box
+            key={logo.alt}
+            component="span"
+            role="img"
+            aria-label={logo.alt}
             sx={{
               width: logoSize,
               height: logoSize,
+              display: 'grid',
+              placeItems: 'center',
+              overflow: 'hidden',
+              borderRadius: '50%',
+              flexShrink: 0,
               bgcolor: '#f5f3ed',
-              color: 'secondary.main',
-              fontWeight: 800,
-              fontSize: compact ? 11 : 14,
+              border: '2px solid rgba(255, 255, 255, 0.68)',
             }}
           >
-            {label}
-          </Avatar>
+            <Box
+              alt=""
+              component="img"
+              src={logo.src}
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                padding: compact ? '2px' : '4px',
+              }}
+            />
+          </Box>
         ))}
       </Box>
 
-      <Box sx={{ flexGrow: 1 }}>
+      <Box sx={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>
         <Typography
           component="h1"
           variant={compact ? 'subtitle1' : 'h6'}
-          sx={{ fontWeight: 800, letterSpacing: 1, lineHeight: 1.2 }}
+          sx={{
+            fontWeight: 800,
+            letterSpacing: 1,
+            lineHeight: 1.2,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
         >
           PROGRAMS TRACKING &amp; DATABASE
         </Typography>
@@ -64,7 +92,7 @@ export default function SiteHeader({ compact = false }) {
       </Box>
 
       {user && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', flexShrink: 0 }}>
           <Typography variant="body2">{user.fullName}</Typography>
           <Chip
             size="small"

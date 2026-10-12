@@ -1,28 +1,52 @@
 // Shared MySQL connection pools. Import from here instead of creating pools elsewhere.
-require('./env')
-
 const mysql = require('mysql2/promise')
 
+const env = require('./env')
+
 const baseConfig = {
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
+  host: env.DB_HOST,
+  port: env.DB_PORT,
+  user: env.DB_USER,
+  password: env.DB_PASSWORD,
   waitForConnections: true,
-  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
+  connectionLimit: env.DB_CONNECTION_LIMIT,
   dateStrings: true,
 }
 
 // GIP database
 const gipPool = mysql.createPool({
   ...baseConfig,
-  database: process.env.DB_GIP_NAME || 'lgu_gip',
+  database: env.DB_GIP_NAME,
 })
 
 // Login database
 const usersPool = mysql.createPool({
   ...baseConfig,
-  database: process.env.DB_USERS_NAME || 'lgu_users',
+  database: env.DB_USERS_NAME,
 })
 
-module.exports = { gipPool, usersPool }
+/**
+ * Runs `work(connection)` inside a transaction.
+ * Commits on success, rolls back on any error, always releases the connection.
+ */
+async function withTransaction(pool, work) {
+  const connection = await pool.getConnection()
+
+  try {
+    await connection.beginTransaction()
+    const result = await work(connection)
+    await connection.commit()
+    return result
+  } catch (error) {
+    try {
+      await connection.rollback()
+    } catch (rollbackError) {
+      console.error('Rollback failed:', rollbackError.message)
+    }
+    throw error
+  } finally {
+    connection.release()
+  }
+}
+
+module.exports = { gipPool, usersPool, withTransaction }

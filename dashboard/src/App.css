@@ -480,10 +480,141 @@
   gap: 15px 24px;
 }
 
+.gip-record-dialog {
+  max-height: min(860px, calc(100vh - 48px));
+}
+
+.gip-record-title {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 24px 28px 18px !important;
+}
+
+.gip-record-title .MuiTypography-overline {
+  color: var(--muted);
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.gip-record-title h2 {
+  font-weight: 800;
+}
+
+.gip-record-summary {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+}
+
+.gip-record-content {
+  padding: 8px 28px 24px !important;
+}
+
+.gip-record-content .gip-details-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gip-record-section {
+  border-bottom: 1px solid #e2eae5;
+  padding: 18px 0;
+}
+
+.gip-record-section:last-child {
+  border-bottom: 0;
+}
+
+.gip-record-section-title {
+  color: var(--ink);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.gip-record-section-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.gip-record-section-heading .gip-record-section-title {
+  margin-bottom: 0;
+}
+
+.gip-requirement-progress {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 240px;
+}
+
+.gip-requirement-progress .MuiLinearProgress-root {
+  border-radius: 4px;
+  flex: 1;
+  height: 6px;
+}
+
+.gip-requirement-list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gip-requirement-item {
+  align-items: center;
+  background: #f7faf8;
+  border: 1px solid #e2eae5;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 12px;
+}
+
+.gip-requirement-item.is-missing {
+  background: #fffaf0;
+  border-color: #e7bd68;
+}
+
+.gip-requirement-item.is-submitted {
+  background: #f4fbf6;
+}
+
+.gip-requirement-missing {
+  color: #9a6500;
+  font-weight: 700;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.gip-requirement-check {
+  color: #a8b5ad;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gip-requirement-check.is-submitted {
+  color: #2e8b57;
+}
+
+.gip-record-actions {
+  background: #fff;
+  border-top: 1px solid #e2eae5;
+  justify-content: flex-end;
+  padding: 13px 28px !important;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
 .gip-detail {
   min-width: 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e2eae5;
+  padding-bottom: 4px;
 }
 
 .gip-detail dt {
@@ -685,6 +816,29 @@
 
   .gip-details-grid {
     grid-template-columns: 1fr;
+  }
+
+  .gip-record-content .gip-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gip-record-title,
+  .gip-record-content {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  .gip-record-actions {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  .gip-requirement-list {
+    grid-template-columns: 1fr;
+  }
+
+  .gip-requirement-progress {
+    min-width: 0;
   }
 
   .gip-table-toolbar {

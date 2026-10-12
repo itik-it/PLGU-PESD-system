@@ -16,17 +16,19 @@ export default function ProgramCard({ program, onOpen }) {
         sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}
       >
         <Avatar
-          aria-label={`${program.name} logo placeholder`}
+          alt={`${program.name} logo`}
+          src={program.image}
           sx={{
             width: 84,
             height: 84,
             bgcolor: '#f3f5f0',
-            color: 'secondary.main',
-            fontWeight: 800,
-            fontSize: program.logo.length > 3 ? 15 : 20,
+            '& img': {
+              objectFit: 'contain',
+              padding: '4px',
+            },
           }}
         >
-          {program.logo}
+          {!program.image && program.logo}
         </Avatar>
         <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>
           {program.name}

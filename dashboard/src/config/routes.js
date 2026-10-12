@@ -11,10 +11,11 @@ import Ofw from '../page/ofw.jsx'
 import Spes from '../page/spes.jsx'
 import Tupad from '../page/tupad.jsx'
 import Users from '../page/users.jsx'
+import gipLogo from '../assets/gip.png'
 
 // Shown as cards on the home page.
 export const programs = [
-  { name: 'GIP', logo: 'GIP', path: '/gip', component: Gip },
+  { name: 'GIP', logo: 'GIP', image: gipLogo, path: '/gip', component: Gip },
   { name: 'SAGUT', logo: 'SAGUT', path: '/sagut', component: Sagut },
   { name: 'BRIDGING', logo: 'BR', path: '/bridging', component: Bridging },
   { name: 'DOKTOR', logo: 'DOK', path: '/doktor', component: Doktor },

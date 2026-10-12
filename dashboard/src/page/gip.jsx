@@ -11,6 +11,7 @@ import {
   FormControl,
   FormControlLabel,
   IconButton,
+  LinearProgress,
   Paper,
   Table,
   TableBody,
@@ -22,6 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 import { request } from '../api/client.js';
+import { useAuth } from '../auth/AuthContext.jsx';
 
 const EditIcon = () => (
   <svg aria-hidden="true" className="gip-action-icon" viewBox="0 0 24 24">
@@ -40,7 +42,7 @@ const columns = [
   { key: 'firstName', label: 'First Name', group: 'beneficiary' },
   { key: 'middleName', label: 'Middle Name', group: 'beneficiary' },
   { key: 'extensionName', label: 'Extension Name', group: 'beneficiary' },
-  { key: 'birthday', label: 'Birthday (DD/MM/YY)', group: 'beneficiary' },
+  { key: 'birthday', label: 'Birthdate', group: 'beneficiary' },
   
   { key: 'barangay', label: 'Barangay', group: 'beneficiary' },
   { key: 'cityMunicipality', label: 'City/Municipality', group: 'beneficiary' },
@@ -68,7 +70,7 @@ const tableColumns = [
   { key: 'barangay', label: 'Barangay' },
   { key: 'contactNo', label: 'Contact No.' },
   { key: 'dateApplied', label: 'Date Applied' },
-  { key: 'employmentStatus', label: 'Employment Status' },
+  { key: 'employmentStatus', label: 'Current Employment' },
 ]
 
 const employmentOptions = [
@@ -91,8 +93,16 @@ const isValidEmail = (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valu
 const isValidContactNumber = (value) => {
   if (!value) return true
   const digits = value.replace(/\D/g, '')
-  return /^[+]?[\d\s().-]+$/.test(value) && digits.length <= 11
+  return /^[+]?[\d\s().-]+$/.test(value) && digits.length === 11
 }
+
+const currentDate = new Date()
+const today = [
+  currentDate.getFullYear(),
+  String(currentDate.getMonth() + 1).padStart(2, '0'),
+  String(currentDate.getDate()).padStart(2, '0'),
+].join('-')
+const isValidDate = (value) => !value || value <= today
 
 const fromApiApplicant = (applicant) => ({
   id: applicant.id,
@@ -101,7 +111,6 @@ const fromApiApplicant = (applicant) => ({
   middleName: applicant.middleName || '',
   extensionName: applicant.extensionName || '',
   birthday: applicant.birthdate || '',
-  
   barangay: applicant.barangay || '',
   cityMunicipality: applicant.municipality || '',
   province: applicant.province || '',
@@ -171,6 +180,8 @@ const requirementKeys = new Set(
     .map((column) => column.key),
 )
 
+const requirementColumns = columns.filter((column) => requirementKeys.has(column.key))
+
 const createEmptyRow = (id = null) => columns.reduce((row, column) => {
   if (column.key === 'employmentStatus') {
     row[column.key] = []
@@ -187,12 +198,24 @@ const displayValue = (value, fallback) => {
   return value || fallback
 }
 
+const getApplicantName = (applicant) => (
+  `${applicant.lastName}, ${[
+    applicant.firstName,
+    applicant.middleName,
+    applicant.extensionName,
+  ].filter(Boolean).join(' ')}`
+)
+
 const formatDate = (value) => {
   if (!value) return '—'
   const date = new Date(`${value}T00:00:00`)
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleDateString('en-GB')
+    : date.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
 }
 
 const calculateAge = (birthday) => {
@@ -214,6 +237,7 @@ const calculateAge = (birthday) => {
 }
 
 function Gip() {
+  const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
   const [selectedRow, setSelectedRow] = useState(null)
@@ -222,6 +246,8 @@ function Gip() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const canDelete = user?.role === 'admin'
 
   useEffect(() => {
     const loadApplicants = async () => {
@@ -253,7 +279,7 @@ function Gip() {
     const missingFields = requiredApplicantFields
       .filter((key) => !String(formRow[key] || '').trim())
       .map((key) => columns.find((column) => column.key === key)?.label)
-    if (!formRow.birthday) missingFields.push('Birthday (DD/MM/YY)')
+    if (!formRow.birthday) missingFields.push('Birthdate')
     if (!formRow.employmentStatus?.length) missingFields.push('Current Employment')
     if (missingFields.length) {
       setError(`Please complete: ${missingFields.join(', ')}.`)
@@ -264,7 +290,15 @@ function Gip() {
       return
     }
     if (!isValidContactNumber(formRow.contactNo)) {
-      setError('Contact number must contain 7 to 15 digits and use only valid phone characters.')
+      setError('Contact number must contain exactly 11 digits and use only valid phone characters.')
+      return
+    }
+    if (!isValidDate(formRow.birthday)) {
+      setError('Birthday cannot be in the future.')
+      return
+    }
+    if (!isValidDate(formRow.dateApplied)) {
+      setError('Date applied cannot be in the future.')
       return
     }
 
@@ -397,8 +431,8 @@ function Gip() {
                   if (column.key === 'beneficiaryName') {
                     return (
                       <TableCell key={column.key}>
-                        <strong>{`${row.lastName}, ${[row.firstName, row.middleName].filter(Boolean).join(' ')}`}</strong>
-                        <span className="gip-email-cell">{row.email || 'No email provided'}</span>
+                        <strong>{getApplicantName(row)}</strong>
+                        <span className="gip-email-cell">{displayValue(row.email, '—')}</span>
                       </TableCell>
                     )
                   }
@@ -429,9 +463,11 @@ function Gip() {
                   <IconButton aria-label="Edit applicant" color="primary" onClick={() => openEditForm(row)} size="small">
                     <EditIcon />
                   </IconButton>
-                  <IconButton aria-label="Delete applicant" color="error" onClick={() => setDeleteTarget(row)} size="small">
-                    <DeleteIcon />
-                  </IconButton>
+                  {canDelete && (
+                    <IconButton aria-label="Delete applicant" color="error" onClick={() => setDeleteTarget(row)} size="small">
+                      <DeleteIcon />
+                    </IconButton>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -449,24 +485,153 @@ function Gip() {
         </Box>
       </Paper>
 
-      <Dialog fullWidth maxWidth="md" onClose={() => setSelectedRow(null)} open={Boolean(selectedRow)}>
-        <DialogTitle>Complete beneficiary information</DialogTitle>
-        <DialogContent dividers>
-          <Box className="gip-details-grid">
-            {selectedRow && columns.map((column) => (
-              <Box className="gip-detail" key={column.key}>
-                <Typography component="dt" variant="caption">{column.label}</Typography>
-                <Typography component="dd" variant="body2">
-                  {requirementKeys.has(column.key)
-                    ? selectedRow[column.key] ? 'Submitted' : 'Not submitted'
-                    : column.key === 'birthday' || column.key === 'dateApplied'
-                    ? formatDate(selectedRow[column.key]).replace('—', 'Not provided')
-                    : displayValue(selectedRow[column.key], 'Not provided')}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </DialogContent>
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        onClose={() => setSelectedRow(null)}
+        open={Boolean(selectedRow)}
+        PaperProps={{ className: 'gip-record-dialog' }}
+      >
+        {selectedRow && (() => {
+          const submittedRequirements = requirementColumns.filter(
+            (column) => selectedRow[column.key],
+          ).length
+
+          const renderField = (label, value) => (
+            <Box className="gip-detail" key={label}>
+              <Typography component="dt" variant="caption">{label}</Typography>
+              <Typography component="dd" variant="body2">
+                {displayValue(value, '—')}
+              </Typography>
+            </Box>
+          )
+
+          return (
+            <>
+              <DialogTitle className="gip-record-title">
+                <Box>
+                  <Typography component="p" variant="overline">GIP beneficiary record</Typography>
+                  <Typography component="h2" variant="h5">{getApplicantName(selectedRow)}</Typography>
+                  <Box className="gip-record-summary">
+                    <Typography component="span" variant="body2">
+                      {selectedRow.age ? `${selectedRow.age} years old` : 'Age —'}
+                    </Typography>
+                    <Typography component="span" variant="body2">
+                      Date applied: {formatDate(selectedRow.dateApplied)}
+                    </Typography>
+                    {selectedRow.employmentStatus?.map((status) => (
+                      <Chip className="gip-employment-chip" key={status} label={status} size="small" />
+                    ))}
+                  </Box>
+                </Box>
+                <IconButton
+                  aria-label="Close beneficiary details"
+                  onClick={() => setSelectedRow(null)}
+                >
+                  <span aria-hidden="true">×</span>
+                </IconButton>
+              </DialogTitle>
+
+              <DialogContent className="gip-record-content" dividers>
+                <Box className="gip-record-section">
+                  <Typography className="gip-record-section-title" component="h3">Personal information</Typography>
+                  <Box className="gip-details-grid">
+                    {renderField('Sex', selectedRow.sex)}
+                    {renderField(
+                      'Birthdate',
+                      selectedRow.birthday
+                        ? `${formatDate(selectedRow.birthday)}${selectedRow.age ? ` (${selectedRow.age} years old)` : ''}`
+                        : '',
+                    )}
+                    {renderField('Civil status', selectedRow.civilStatus)}
+                  </Box>
+                </Box>
+
+                <Box className="gip-record-section">
+                  <Typography className="gip-record-section-title" component="h3">Address</Typography>
+                  <Box className="gip-details-grid">
+                    {renderField('Barangay', selectedRow.barangay)}
+                    {renderField('Municipality', selectedRow.cityMunicipality)}
+                    {renderField('Province', selectedRow.province)}
+                  </Box>
+                </Box>
+
+                <Box className="gip-record-section">
+                  <Typography className="gip-record-section-title" component="h3">Contact</Typography>
+                  <Box className="gip-details-grid">
+                    {renderField('Contact number', selectedRow.contactNo)}
+                    {renderField('Email address', selectedRow.email)}
+                    {renderField('Course', selectedRow.course)}
+                  </Box>
+                </Box>
+
+                <Box className="gip-record-section">
+                  <Typography className="gip-record-section-title" component="h3">Application</Typography>
+                  <Box className="gip-details-grid">
+                    {renderField('Remarks', selectedRow.remarks)}
+                  </Box>
+                </Box>
+
+                <Box className="gip-record-section">
+                  <Box className="gip-record-section-heading">
+                    <Typography className="gip-record-section-title" component="h3">Requirements</Typography>
+                    <Box className="gip-requirement-progress">
+                      <Typography variant="body2">
+                        {submittedRequirements} of {requirementColumns.length} submitted
+                      </Typography>
+                      <LinearProgress
+                        aria-label={`${submittedRequirements} of ${requirementColumns.length} requirements submitted`}
+                        value={(submittedRequirements / requirementColumns.length) * 100}
+                        variant="determinate"
+                      />
+                    </Box>
+                  </Box>
+                  <Box className="gip-requirement-list">
+                    {requirementColumns.map((column) => (
+                      <Box
+                        className={`gip-requirement-item ${selectedRow[column.key] ? 'is-submitted' : 'is-missing'}`}
+                        key={column.key}
+                      >
+                        <Typography variant="body2">{column.label}</Typography>
+                        <Typography
+                          aria-label={selectedRow[column.key] ? 'Submitted' : 'Missing'}
+                          className={`gip-requirement-check ${selectedRow[column.key] ? 'is-submitted' : ''}`}
+                          component="span"
+                          role="img"
+                        >
+                          {selectedRow[column.key] ? '✓' : '○'}
+                        </Typography>
+                        {!selectedRow[column.key] && (
+                          <Typography className="gip-requirement-missing" variant="caption">
+                            Missing
+                          </Typography>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+
+                <Box className="gip-record-section">
+                  <Typography className="gip-record-section-title" component="h3">Supporting documents</Typography>
+                  <Typography variant="body2">{displayValue(selectedRow.supportingDocs, '—')}</Typography>
+                </Box>
+              </DialogContent>
+
+              <DialogActions className="gip-record-actions">
+                <Button onClick={() => setSelectedRow(null)}>Close</Button>
+                <Button
+                  onClick={() => {
+                    openEditForm(selectedRow)
+                    setSelectedRow(null)
+                  }}
+                  variant="contained"
+                >
+                  Edit
+                </Button>
+              </DialogActions>
+            </>
+          )
+        })()}
       </Dialog>
 
       <Dialog
@@ -582,7 +747,10 @@ function Gip() {
                         </Typography>
                         <TextField
                           id={`gip-${column.key}`}
-                          inputProps={{ 'aria-label': column.label }}
+                          inputProps={{
+                            'aria-label': column.label,
+                            max: today,
+                          }}
                           onChange={updateField}
                           required={column.key === 'birthday'}
                           size="small"
@@ -603,7 +771,7 @@ function Gip() {
                         column.key === 'email' && formRow.email && !isValidEmail(formRow.email)
                           ? 'Enter a valid email address.'
                           : column.key === 'contactNo' && formRow.contactNo && !isValidContactNumber(formRow.contactNo)
-                          ? 'Use 7 to 15 digits.'
+                          ? 'Use exactly 11 digits.'
                           : undefined
                       }
                       key={column.key}
