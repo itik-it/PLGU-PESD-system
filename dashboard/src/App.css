@@ -170,10 +170,10 @@
 
 .gip-page {
   height: 100svh;
+  overflow: scroll;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   padding: 44px clamp(24px, 4vw, 48px);
   background:
     radial-gradient(circle at 100% 0%, rgba(77, 119, 91, 0.1), transparent 30%),
@@ -331,12 +331,9 @@
 }
 
 .gip-table-container {
-  width: 100%;
-  min-height: 0;
   flex: 1 1 auto;
-  overflow: auto !important;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable both-edges;
+  min-height: 0;
+  overflow: auto;
   background: #fff;
 }
 
