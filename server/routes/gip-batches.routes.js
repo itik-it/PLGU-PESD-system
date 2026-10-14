@@ -11,6 +11,7 @@ const { asyncHandler } = require('../utils/async-handler')
 const { parseId } = require('../utils/parse-id')
 const { toBatchResponse, getBatchOrFail } = require('../utils/batch.utils')
 const applicantsRouter = require('./gip-applicants.routes')
+const excelRouter = require('./gip-excel.routes')
 
 const router = express.Router()
 
@@ -92,5 +93,9 @@ router.patch(
 // APPLICANTS OF ONE BATCH  ->  /api/gip/batches/:batchId/applicants
 
 router.use('/:batchId/applicants', applicantsRouter)
+
+// EXCEL EXPORT / IMPORT  ->  /api/gip/batches/:batchId/export, /import
+
+router.use('/:batchId', excelRouter)
 
 module.exports = router

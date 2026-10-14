@@ -22,7 +22,7 @@ function toBatchResponse(row) {
  */
 async function getBatchOrFail(executor, batchId, { requireOpen = false } = {}) {
   const [rows] = await executor.query(
-    'SELECT id, status FROM gip_batches WHERE id = ?',
+    'SELECT id, status, name, batch_year FROM gip_batches WHERE id = ?',
     [batchId]
   )
 

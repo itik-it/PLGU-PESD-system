@@ -26,6 +26,8 @@ import {
 import { api } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import BatchList from '../components/BatchList.jsx';
+import ImportDialog from '../components/ImportDialog.jsx';
+import { saveFile } from '../utils/saveFile.js';
 
 const columns = [
   { key: 'lastName', label: 'Last Name', group: 'beneficiary' },
@@ -82,10 +84,12 @@ const requiredApplicantFields = [
 ]
 
 const isValidEmail = (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
 const isValidContactNumber = (value) => {
   if (!value) return true
-  return /^09\d{9}$/.test(value)
+  return /^(?:9\d{9}|09\d{9})$/.test(value)
 }
+
 
 const currentDate = new Date()
 const today = [
@@ -227,6 +231,16 @@ const calculateAge = (birthday) => {
   return age >= 0 ? String(age) : ''
 }
 
+// Look of the Import / Export buttons (the Add Applicant button is styled in App.css).
+const excelButtonSx = {
+  minHeight: 40,
+  borderRadius: '8px',
+  borderColor: '#b9d4c1',
+  color: '#183d2d',
+  fontWeight: 700,
+  whiteSpace: 'nowrap',
+}
+
 // The table for ONE batch. `batch` comes from the batch list screen.
 function GipTable({ batch, onBack }) {
   const { user } = useAuth()
@@ -238,6 +252,8 @@ function GipTable({ batch, onBack }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [importOpen, setImportOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [page, setPage] = useState(0)
 
   const canDelete = user?.role === 'admin'
@@ -257,6 +273,24 @@ function GipTable({ batch, onBack }) {
     }
     loadApplicants()
   }, [applicantsPath])
+
+    const reloadRows = async () => {
+      const applicants = await api.get(applicantsPath)
+      setRows(applicants.map(fromApiApplicant))
+    }
+  
+    const exportToExcel = async () => {
+      setExporting(true)
+      setError('')
+      try {
+        const file = await api.download(`/gip/batches/${batch.id}/export`)
+        saveFile(file, `${batch.name}.xlsx`)
+      } catch (exportError) {
+        setError(exportError.message)
+      } finally {
+        setExporting(false)
+      }
+    }
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -292,7 +326,7 @@ function GipTable({ batch, onBack }) {
       return
     }
     if (!isValidContactNumber(formRow.contactNo)) {
-      setError('Contact number must be 11 digits and start with 09.')
+      setError('Contact number must be 10 digits starting with 9 or 11 digits starting with 09.')
       return
     }
     if (!isValidDate(formRow.birthday)) {
@@ -389,6 +423,17 @@ function GipTable({ batch, onBack }) {
               size="small"
               value={search}
             />
+            <Button
+              sx={excelButtonSx}
+              variant="outlined"
+              disabled={isClosed}
+              onClick={() => setImportOpen(true)}
+            >
+              Import
+            </Button>
+            <Button sx={excelButtonSx} variant="outlined" disabled={exporting} onClick={exportToExcel}>
+              {exporting ? 'Exporting...' : 'Export'}
+            </Button>
             <Button className="gip-add-button" variant="contained" disabled={isClosed} onClick={openAddForm}>
               <span aria-hidden="true" className="gip-button-symbol"></span>
               Add Applicant
@@ -679,7 +724,7 @@ function GipTable({ batch, onBack }) {
 
                   const validateContactField = (event) => {
                     if (event.target.value && !isValidContactNumber(event.target.value)) {
-                      setError('Contact number must be 11 digits and start with 09.')
+                      setError('Contact number must be 10 digits starting with 9 or 11 digits starting with 09.')
                     }
                   }
 
@@ -756,7 +801,7 @@ function GipTable({ batch, onBack }) {
                   if (column.key === 'sex' || column.key === 'civilStatus') {
                     const options = column.key === 'sex'
                       ? ['Male', 'Female']
-                      : ['Single', 'Married', 'Widowed']
+                      : ['Single', 'Married', 'Widowed', 'Separated']
                     return (
                       <TextField
                         key={column.key}
@@ -812,7 +857,7 @@ function GipTable({ batch, onBack }) {
                         column.key === 'email' && formRow.email && !isValidEmail(formRow.email)
                           ? 'Enter a valid email address.'
                           : column.key === 'contactNo' && formRow.contactNo && !isValidContactNumber(formRow.contactNo)
-                          ? 'Contact number must be 11 digits and start with 09.'
+                          ? 'Contact number must be 10 digits starting with 9 or 11 digits starting with 09.'
                           : undefined
                       }
                       key={column.key}
@@ -855,6 +900,14 @@ function GipTable({ batch, onBack }) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {importOpen && (
+        <ImportDialog
+          batch={batch}
+          onClose={() => setImportOpen(false)}
+          onImported={reloadRows}
+        />
+      )}
 
       <Dialog onClose={() => setDeleteTarget(null)} open={Boolean(deleteTarget)}>
         <DialogTitle>Delete applicant?</DialogTitle>

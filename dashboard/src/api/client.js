@@ -31,10 +31,34 @@ export const request = async (path, options = {}) => {
   return response.status === 204 ? null : response.json()
 }
 
+// Downloads a file (like an Excel export). Returns a Blob.
+export const downloadFile = async (path) => {
+  const response = await fetch(`${apiUrl}${path}`, { credentials: 'include' })
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+
+    if (response.status === 401) window.dispatchEvent(new Event('auth:expired'))
+
+    const error = new Error(body.message || 'The file could not be downloaded.')
+    error.status = response.status
+    throw error
+  }
+
+  return response.blob()
+}
+
 export const api = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
   put: (path, body) => request(path, { method: 'PUT', body: JSON.stringify(body) }),
   patch: (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (path) => request(path, { method: 'DELETE' }),
+  // Sends one file. Empty headers let the browser set the multipart boundary.
+  upload: (path, file) => {
+    const body = new FormData()
+    body.append('file', file)
+    return request(path, { method: 'POST', body, headers: {} })
+  },
+  download: downloadFile,
 }

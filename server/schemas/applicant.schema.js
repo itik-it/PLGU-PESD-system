@@ -1,12 +1,12 @@
-const { z } = require('zod')
+const { z } = require("zod");
 
-const requiredText = (message) => z.string().trim().min(1, message)
-const optionalText = z.string().trim().default('')
+const requiredText = (message) => z.string().trim().min(1, message);
+const optionalText = z.string().trim().default("");
 
 const applicantSchema = z.object({
   // PERSONAL INFORMATION
-  lastName: requiredText('Last name is required.'),
-  firstName: requiredText('First name is required.'),
+  lastName: requiredText("Last name is required."),
+  firstName: requiredText("First name is required."),
   middleName: optionalText,
   extensionName: optionalText,
 
@@ -15,45 +15,44 @@ const applicantSchema = z.object({
     .date()
     .refine(
       (value) => new Date(`${value}T00:00:00`) <= new Date(),
-      'Birthdate cannot be in the future.'
+      "Birthdate cannot be in the future.",
     ),
 
-  sex: z.enum(['Male', 'Female'], { error: 'Sex is required.' }),
-  civilStatus: z.enum(['Single', 'Married', 'Widowed'], { error: 'Civil status is required.' }),
-  barangay: requiredText('Barangay is required.'),
-  municipality: requiredText('Municipality is required.'),
-  province: requiredText('Province is required.'),
+  sex: z.enum(["Male", "Female"], { error: "Sex is required." }),
+  civilStatus: z.enum(["Single", "Married", "Widowed", "Separated"], {
+    error: "Civil status is required.",
+  }),
+  barangay: requiredText("Barangay is required."),
+  municipality: requiredText("Municipality is required."),
+  province: requiredText("Province is required."),
   course: optionalText,
 
-  email: z
-    .union([z.string().trim().email(), z.literal('')])
-    .default(''),
+  email: z.union([z.string().trim().email(), z.literal("")]).default(""),
 
   contactNumber: z
     .string()
     .trim()
+    .transform((value) => (/^9\d{9}$/.test(value) ? `0${value}` : value))
     .refine(
-      (value) => value === '' || /^09\d{9}$/.test(value),
-      'Contact number must be 11 digits and start with 09.'
+      (value) => value === "" || /^09\d{9}$/.test(value),
+      "Contact number must be 10 digits starting with 9 or 11 digits starting with 09.",
     )
-    .default(''),
+    .default(""),
 
   // CLASSIFICATIONS (multiple allowed; duplicates are removed)
   classifications: z
     .array(z.string().trim().min(1))
-    .min(1, 'At least one classification is required.')
+    .min(1, "At least one classification is required.")
     .transform((names) => [...new Set(names)]),
 
   // APPLICATION INFORMATION
   dateApplied: z
-    .union([z.string().date(), z.literal('')])
+    .union([z.string().date(), z.literal("")])
     .refine(
-      (value) =>
-        value === '' ||
-        new Date(`${value}T00:00:00`) <= new Date(),
-      'Date applied cannot be in the future.'
+      (value) => value === "" || new Date(`${value}T00:00:00`) <= new Date(),
+      "Date applied cannot be in the future.",
     )
-    .default(''),
+    .default(""),
 
   remarks: optionalText,
 
@@ -69,6 +68,6 @@ const applicantSchema = z.object({
 
   // SUPPORTING DOCUMENTS (free text)
   supportingDocuments: optionalText,
-})
+});
 
-module.exports = { applicantSchema }
+module.exports = { applicantSchema };
