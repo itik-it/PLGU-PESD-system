@@ -14,19 +14,23 @@ import Users from '../page/users.jsx'
 import gipLogo from '../assets/gip.png'
 import Guwip from '../page/guwip.jsx'
 
+// Section headings on the home page, in the order they appear.
+// Each program below picks one with its `group` field.
+export const programGroups = ['Employment', 'Livelihood', 'Scholarships', 'OFW Services']
+
 // Shown as cards on the home page.
 export const programs = [
-  { name: 'GIP', logo: 'GIP', image: gipLogo, path: '/gip', component: Gip },
-  { name: 'SAGUT', logo: 'SAGUT', path: '/sagut', component: Sagut },
-  { name: 'BRIDGING', logo: 'BR', path: '/bridging', component: Bridging },
-  { name: 'DOKTOR', logo: 'DOK', path: '/doktor', component: Doktor },
-  { name: 'LIVELIHOOD', logo: 'LIV', path: '/livelihood', component: Livelihood },
-  { name: 'JOBSEEKERS', logo: 'JS', path: '/jobseeker', component: Jobseekers },
-  { name: 'JOBVACANCY', logo: 'JV', path: '/jobvacancy', component: Jobvacancy },
-  { name: 'OFW', logo: 'OFW', path: '/ofw', component: Ofw },
-  { name: 'SPES', logo: 'SPES', path: '/spes', component: Spes },
-  { name: 'TUPAD', logo: 'TUPAD', path: '/tupad', component: Tupad },
-  { name: 'GUWIP', logo: 'GUWIP', path: '/guwip', component: Guwip },
+  { name: 'GIP', group: 'Employment', logo: 'GIP', image: gipLogo, path: '/gip', component: Gip },
+  { name: 'SAGUT', group: 'Scholarships', logo: 'SAGUT', path: '/sagut', component: Sagut },
+  { name: 'BRIDGING', group: 'Livelihood', logo: 'BR', path: '/bridging', component: Bridging },
+  { name: 'DOKTOR', group: 'Scholarships', logo: 'DOK', path: '/doktor', component: Doktor },
+  { name: 'LIVELIHOOD', group: 'Livelihood', logo: 'LIV', path: '/livelihood', component: Livelihood },
+  { name: 'JOBSEEKERS', group: 'Employment', logo: 'JS', path: '/jobseeker', component: Jobseekers },
+  { name: 'JOBVACANCY', group: 'Employment', logo: 'JV', path: '/jobvacancy', component: Jobvacancy },
+  { name: 'OFW', group: 'OFW Services', logo: 'OFW', path: '/ofw', component: Ofw },
+  { name: 'SPES', group: 'Employment', logo: 'SPES', path: '/spes', component: Spes },
+  { name: 'TUPAD', group: 'Employment', logo: 'TUPAD', path: '/tupad', component: Tupad },
+  { name: 'GUWIP', group: 'Livelihood', logo: 'GUWIP', path: '/guwip', component: Guwip },
 ]
 
 // Every page that needs a login (programs + admin pages).

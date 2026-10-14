@@ -533,7 +533,7 @@
   outline-offset: -3px;
 }
 
-/* ---- SAGUT table: compact, no sideways scrolling; full details open in a window ---- */
+/* ---- Flat table style shared by SAGUT and GIP: compact, no sideways scrolling ---- */
 .sagut-table-container {
   overflow-x: hidden;
 }

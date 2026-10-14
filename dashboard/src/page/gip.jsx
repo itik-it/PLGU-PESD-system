@@ -27,18 +27,6 @@ import { api } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import BatchList from '../components/BatchList.jsx';
 
-const EditIcon = () => (
-  <svg aria-hidden="true" className="gip-action-icon" viewBox="0 0 24 24">
-    <path d="m16.7 3.3 4 4L8 20H4v-4L16.7 3.3Zm-1.4 1.4L5.5 14.5V18h3.5L18.8 8.2l-3.5-3.5Z" />
-  </svg>
-)
-
-const DeleteIcon = () => (
-  <svg aria-hidden="true" className="gip-action-icon" viewBox="0 0 24 24">
-    <path d="M6 20V7h12v13H6Zm9-16h3v2H6V4h3l1-1h4l1 1ZM8 9v9h2V9H8Zm6 0v9h2V9h-2Z" />
-  </svg>
-)
-
 const columns = [
   { key: 'lastName', label: 'Last Name', group: 'beneficiary' },
   { key: 'firstName', label: 'First Name', group: 'beneficiary' },
@@ -374,13 +362,14 @@ function GipTable({ batch, onBack }) {
               : 'Manage, search, and review all registered beneficiaries.'}
           </Typography>
         </Box>
+        <Box className="gip-record-count"><strong>{rows.length}</strong><span>{rows.length === 1 ? 'beneficiary' : 'beneficiaries'}</span></Box>
       </Box>
 
       <Paper className="gip-table-card" elevation={0}>
         <Box className="gip-table-toolbar">
           <Box>
             <Typography className="gip-section-title" component="h2" variant="h6">
-              Applicant List · {rows.length} {rows.length === 1 ? 'beneficiary' : 'beneficiaries'}
+              Applicant List
             </Typography>
           </Box>
           {error && (
@@ -407,8 +396,8 @@ function GipTable({ batch, onBack }) {
           </Box>
         </Box>
 
-        <TableContainer className="gip-table-container">
-          <Table stickyHeader aria-label="GIP beneficiary records" className="gip-table" size="small">
+        <TableContainer className="gip-table-container sagut-table-container">
+          <Table stickyHeader aria-label="GIP beneficiary records" className="gip-table sagut-table" size="small">
           <TableHead>
             <TableRow>
               {tableColumns.map((column) => (
@@ -476,13 +465,9 @@ function GipTable({ batch, onBack }) {
                   return <TableCell key={column.key}>{value}</TableCell>
                 })}
                 <TableCell className="gip-actions-cell" onClick={(event) => event.stopPropagation()}>
-                  <IconButton aria-label="Edit applicant" color="primary" disabled={isClosed} onClick={() => openEditForm(row)} size="small">
-                    <EditIcon />
-                  </IconButton>
+                  <Button disabled={isClosed} onClick={() => openEditForm(row)} size="small">Edit</Button>
                   {canDelete && !isClosed && (
-                    <IconButton aria-label="Delete applicant" color="error" onClick={() => setDeleteTarget(row)} size="small">
-                      <DeleteIcon />
-                    </IconButton>
+                    <IconButton aria-label="Delete applicant" color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>
                   )}
                 </TableCell>
               </TableRow>
@@ -490,28 +475,12 @@ function GipTable({ batch, onBack }) {
           </TableBody>
           </Table>
         </TableContainer>
-        <Box className="gip-table-footer">
-          <span>Rows per page</span>
-          <strong>{rowsPerPage}</strong>
-          <span>{firstRowNumber ? `${firstRowNumber}–${lastRowNumber}` : '0'} of {filteredRows.length}</span>
-          <Box className="gip-pagination-arrows">
-            <button
-              aria-label="Previous page"
-              disabled={visiblePage === 0}
-              onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
-              type="button"
-            >
-              ‹
-            </button>
-            <button
-              aria-label="Next page"
-              disabled={visiblePage >= pageCount - 1}
-              onClick={() => setPage((currentPage) => Math.min(pageCount - 1, currentPage + 1))}
-              type="button"
-            >
-              ›
-            </button>
-          </Box>
+        <Box className="sagut-pagination">
+          <Typography variant="body2">
+            {firstRowNumber ? `${firstRowNumber}–${lastRowNumber} of ${filteredRows.length}` : '0 beneficiaries'}
+          </Typography>
+          <Button disabled={visiblePage === 0} onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}>Previous</Button>
+          <Button disabled={visiblePage >= pageCount - 1} onClick={() => setPage((currentPage) => Math.min(pageCount - 1, currentPage + 1))}>Next</Button>
         </Box>
       </Paper>
 
