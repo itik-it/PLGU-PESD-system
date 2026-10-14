@@ -170,7 +170,6 @@ function Sagut() {
   return (
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
-        
         <Box>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
           <Typography className="gip-page-title" component="h1" variant="h5">SAGUT Scholarship Program</Typography>
