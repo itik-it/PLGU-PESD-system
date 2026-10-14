@@ -51,10 +51,10 @@ const gwaYears = [['firstYear', '1st Year'], ['secondYear', '2nd Year'], ['third
 const columns = [
   { key: 'applicationNumber', label: 'Application Number', group: 'Application Info', width: 140 },
   { key: 'schoolYearApplied', label: 'School Year Applied', group: 'Application Info', width: 130 },
-  { key: 'submissionDate', label: 'Date of Submission of Application Letter', group: 'Application Info', width: 190 },
+  { key: 'submissionDate', label: 'Date of Submission of Application Letter', group: 'Application Info', width: 130 },
   { key: 'name', label: 'Name', group: 'Applicant', sticky: true },
   { key: 'gender', label: 'Gender', group: 'Applicant' },
-  { key: 'contactNumber', label: 'Contact #', group: 'Applicant', width: 140 },
+  { key: 'contactNumber', label: 'Contact Number', group: 'Applicant', width: 140 },
   { key: 'familyIncome', label: 'Average 12 Months Family Income (Php)', group: '1st Screening Requirements', width: 190 },
   { key: 'incomeSources', label: 'Sources', group: '1st Screening Requirements', width: 160 },
   { key: 'municipality', label: 'Municipality', group: '1st Screening Requirements', width: 140 },
@@ -171,6 +171,10 @@ function Sagut() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
+          <Button className="gip-home-button" href="/">
+            <span aria-hidden="true">←</span>
+             Back to Dashboard
+          </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
           <Typography className="gip-page-title" component="h1" variant="h5">SAGUT Scholarship Program</Typography>
           <Typography className="gip-page-hint" component="p" variant="body2">Manage, search, and review Provincial Scholarship of Nueva Vizcaya applicants.</Typography>
@@ -224,7 +228,7 @@ function Sagut() {
               <Field span={6} label="Date of Submission of Application Letter" type="date" value={formRow.submissionDate} onChange={(value) => updateField('submissionDate', value)} required />
               <Field span={6} label="Name" value={formRow.name} onChange={(value) => updateField('name', value)} required />
               <FormControl className="sagut-span-3" required><FormLabel>Gender</FormLabel><RadioGroup row value={formRow.gender} onChange={(event) => updateField('gender', event.target.value)}><FormControlLabel control={<Radio />} label="Male" value="Male" /><FormControlLabel control={<Radio />} label="Female" value="Female" /></RadioGroup></FormControl>
-              <Field span={3} label="Contact #" value={formRow.contactNumber} onChange={(value) => updateField('contactNumber', value)} required />
+              <Field span={3} label="Contact Number" value={formRow.contactNumber} onChange={(value) => updateField('contactNumber', value)} required />
             </SagutSection>
             <SagutSection title="1st Screening Requirements">
               <Field span={3} label="Average 12 Months Family Income" type="number" adornment="Php" value={formRow.familyIncome} onChange={(value) => updateField('familyIncome', value)} />
