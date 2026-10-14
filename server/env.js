@@ -21,6 +21,7 @@ const envSchema = z
     DB_CONNECTION_LIMIT: z.coerce.number().int().positive().default(10),
     DB_GIP_NAME: z.string().min(1).default('lgu_gip'),
     DB_USERS_NAME: z.string().min(1).default('lgu_users'),
+    DB_SAGUT_NAME: z.string().min(1).default('lgu_sagut'),
 
     // Add the variables used by auth/session.js here (for example a session
     // secret) so they are validated at startup too:

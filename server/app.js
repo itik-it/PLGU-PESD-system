@@ -11,6 +11,7 @@ const {
   notFoundHandler,
 } = require('./middleware/errorHandler')
 const gipRoutes = require('./routes/gip.routes')
+const sagutRoutes = require('./routes/sagut.routes')
 
 const app = express()
 
@@ -63,6 +64,7 @@ app.get('/api/health', async (_request, response) => {
 
 // Everything under /api/gip requires a logged-in user.
 app.use('/api/gip', requireAuth, gipRoutes)
+app.use('/api/sagut', requireAuth, sagutRoutes)
 
 // ERRORS (must stay last)
 

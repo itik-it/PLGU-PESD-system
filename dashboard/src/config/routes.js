@@ -12,6 +12,7 @@ import Spes from '../page/spes.jsx'
 import Tupad from '../page/tupad.jsx'
 import Users from '../page/users.jsx'
 import gipLogo from '../assets/gip.png'
+import Guwip from '../page/guwip.jsx'
 
 // Shown as cards on the home page.
 export const programs = [
@@ -25,6 +26,7 @@ export const programs = [
   { name: 'OFW', logo: 'OFW', path: '/ofw', component: Ofw },
   { name: 'SPES', logo: 'SPES', path: '/spes', component: Spes },
   { name: 'TUPAD', logo: 'TUPAD', path: '/tupad', component: Tupad },
+  { name: 'GUWIP', logo: 'GUWIP', path: '/guwip', component: Guwip },
 ]
 
 // Every page that needs a login (programs + admin pages).

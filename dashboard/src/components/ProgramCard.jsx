@@ -7,8 +7,7 @@ export default function ProgramCard({ program, onOpen }) {
       sx={{
         borderRadius: '23px',
         borderColor: 'divider',
-        transition: 'border-color .15s, box-shadow .15s',
-        '&:hover': { borderColor: '#a7c4b0', boxShadow: '0 8px 24px rgba(24, 61, 45, 0.1)' },
+        transition: 'border-color .15s, box-shadow .15s'
       }}
     >
       <CardActionArea
@@ -32,10 +31,7 @@ export default function ProgramCard({ program, onOpen }) {
         </Avatar>
         <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>
           {program.name}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Open <span aria-hidden="true">→</span>
-        </Typography>
+        </Typography>       
       </CardActionArea>
     </Card>
   )
