@@ -156,17 +156,7 @@ export default function SiteHeader({ compact = false }) {
             }}
           />
 
-          {/* Home button */}
-          {path !== '/' && (
-            <Button
-              color="inherit"
-              size="small"
-              sx={getActiveButtonSx(path === '/')}
-              onClick={() => navigate('/')}
-            >
-              Home
-            </Button>
-          )}
+
 
           {/* Manage users button (admin only) */}
           {user.role === 'admin' && path !== '/users' && (

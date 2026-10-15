@@ -40,6 +40,17 @@ async function listUsers() {
   return rows
 }
 
+async function updateProfile(id, { fullName, role }) {
+  await usersPool.query(
+    'UPDATE users SET full_name = ?, role = ? WHERE id = ?',
+    [fullName, role, id]
+  )
+}
+
+async function deleteUser(id) {
+  await usersPool.query('DELETE FROM users WHERE id = ?', [id])
+}
+
 async function createUser({ username, passwordHash, fullName, role }) {
   const [result] = await usersPool.query(
     'INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
@@ -64,4 +75,6 @@ module.exports = {
   createUser,
   setActive,
   touchLastLogin,
+  updateProfile,
+  deleteUser
 }
