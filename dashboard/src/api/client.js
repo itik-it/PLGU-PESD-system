@@ -1,5 +1,6 @@
 // One place for talking to the server. Every request sends the login cookie.
-export const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+// export const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+export const apiUrl = import.meta.env.VITE_API_URL || '/api'
 
 export const request = async (path, options = {}) => {
   const response = await fetch(`${apiUrl}${path}`, {
