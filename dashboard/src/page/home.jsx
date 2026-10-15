@@ -26,6 +26,7 @@ const defaultGroups = {
   SAGUT: 'Scholarships',
   DOKTOR: 'Scholarships',
   OFW: 'OFW Services',
+  TRPATU: 'Employment',
 }
 
 const groupOf = (program) => program.group || defaultGroups[program.name] || fallbackGroup

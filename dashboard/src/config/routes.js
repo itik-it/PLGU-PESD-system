@@ -13,6 +13,7 @@ import Tupad from '../page/tupad.jsx'
 import Users from '../page/users.jsx'
 import gipLogo from '../assets/gip.png'
 import Guwip from '../page/guwip.jsx'
+import TrPatu from '../page/trpatu.jsx'
 
 // Section headings on the home page, in the order they appear.
 // Each program below picks one with its `group` field.
@@ -31,6 +32,7 @@ export const programs = [
   { name: 'SPES', group: 'Employment', logo: 'SPES', path: '/spes', component: Spes },
   { name: 'TUPAD', group: 'Employment', logo: 'TUPAD', path: '/tupad', component: Tupad },
   { name: 'GUWIP', group: 'Livelihood', logo: 'GUWIP', path: '/guwip', component: Guwip },
+  { name: 'TRPATU', group: 'Employment', logo: 'TrPaTu', path: '/trpatu', component: TrPatu },
 ]
 
 // Every page that needs a login (programs + admin pages).
