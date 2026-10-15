@@ -12,6 +12,12 @@ import Spes from '../page/spes.jsx'
 import Tupad from '../page/tupad.jsx'
 import Users from '../page/users.jsx'
 import gipLogo from '../assets/gip.png'
+import doktorLogo from '../assets/doktor.png'
+import livelihoodLogo from '../assets/livelihood.png'
+import ofwLogo from '../assets/ofw.png'
+import sagutLogo from '../assets/sagut.png'
+import spesLogo from '../assets/spes.png'
+import tupadLogo from '../assets/tupad.png'
 import Guwip from '../page/guwip.jsx'
 import TrPatu from '../page/trpatu.jsx'
 
@@ -22,15 +28,15 @@ export const programGroups = ['Employment', 'Livelihood', 'Scholarships', 'OFW S
 // Shown as cards on the home page.
 export const programs = [
   { name: 'GIP', group: 'Employment', logo: 'GIP', image: gipLogo, path: '/gip', component: Gip },
-  { name: 'SAGUT', group: 'Scholarships', logo: 'SAGUT', path: '/sagut', component: Sagut },
+  { name: 'SAGUT', group: 'Scholarships', logo: 'SAGUT', image: sagutLogo, path: '/sagut', component: Sagut },
   { name: 'BRIDGING', group: 'Livelihood', logo: 'BR', path: '/bridging', component: Bridging },
-  { name: 'DOKTOR', group: 'Scholarships', logo: 'DOK', path: '/doktor', component: Doktor },
-  { name: 'LIVELIHOOD', group: 'Livelihood', logo: 'LIV', path: '/livelihood', component: Livelihood },
+  { name: 'DOKTOR', group: 'Scholarships', logo: 'DOK', image: doktorLogo, path: '/doktor', component: Doktor },
+  { name: 'LIVELIHOOD', group: 'Livelihood', logo: 'LIV', image: livelihoodLogo, path: '/livelihood', component: Livelihood },
   { name: 'JOBSEEKERS', group: 'Employment', logo: 'JS', path: '/jobseeker', component: Jobseekers },
   { name: 'JOBVACANCY', group: 'Employment', logo: 'JV', path: '/jobvacancy', component: Jobvacancy },
-  { name: 'OFW', group: 'OFW Services', logo: 'OFW', path: '/ofw', component: Ofw },
-  { name: 'SPES', group: 'Employment', logo: 'SPES', path: '/spes', component: Spes },
-  { name: 'TUPAD', group: 'Employment', logo: 'TUPAD', path: '/tupad', component: Tupad },
+  { name: 'OFW', group: 'OFW Services', logo: 'OFW', image: ofwLogo, path: '/ofw', component: Ofw },
+  { name: 'SPES', group: 'Employment', logo: 'SPES', image: spesLogo, path: '/spes', component: Spes },
+  { name: 'TUPAD', group: 'Employment', logo: 'TUPAD', image: tupadLogo, path: '/tupad', component: Tupad },
   { name: 'GUWIP', group: 'Livelihood', logo: 'GUWIP', path: '/guwip', component: Guwip },
   { name: 'TRPATU', group: 'Employment', logo: 'TrPaTu', path: '/trpatu', component: TrPatu },
 ]
