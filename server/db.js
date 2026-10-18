@@ -25,6 +25,24 @@ const sagutPool = mysql.createPool({
   database: env.DB_SAGUT_NAME,
 })
 
+// GUWIP databases
+const guwipPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_GUWIP_NAME,
+})
+
+// DOKTOR database
+const doktorPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_DOKTOR_NAME,
+})
+
+// TRPATU databases
+const trpatuPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_TRPATU_NAME,
+})
+
 // Login database
 const usersPool = mysql.createPool({
   ...baseConfig,
@@ -55,4 +73,12 @@ async function withTransaction(pool, work) {
   }
 }
 
-module.exports = { gipPool, usersPool, sagutPool, withTransaction }
+module.exports = {
+  gipPool,
+  usersPool,
+  sagutPool,
+  guwipPool,
+  doktorPool,
+  trpatuPool,
+  withTransaction,
+}
