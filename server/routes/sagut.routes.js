@@ -36,10 +36,10 @@ const EMPLOYMENT_FIELDS = [
 ]
 
 const FIELDS = [
-  ['applicationNumber', 'application_number', 'Application number'],
-  ['schoolYearApplied', 'school_year_applied', 'School year applied'],
   ['submissionDate', 'submission_date', 'Date of submission'],
-  ['name', 'name', 'Name'],
+  ['lastName', 'last_name', 'Last name'],
+  ['firstName', 'first_name', 'First name'],
+  ['middleName', 'middle_name', 'Middle name'],
   ['gender', 'gender', 'Gender'],
   ['contactNumber', 'contact_number', 'Contact #'],
   ['familyIncome', 'family_income', 'Family income'],
@@ -55,6 +55,7 @@ const FIELDS = [
   ['course', 'course', 'Course'],
   ['placeOfStudy', 'place_of_study', 'Place of study'],
   ...GWA_FIELDS,
+  ['awardsReceived', 'awards_received', 'Awards received'],
   ...EMPLOYMENT_FIELDS,
   ['remarks', 'remarks', 'Remarks'],
   ['batch', 'batch', 'Batch'],
@@ -127,10 +128,10 @@ const flag = z.preprocess((value) => value ?? false, z.boolean())
 const labelOf = Object.fromEntries(FIELDS.map(([key, , label]) => [key, label]))
 
 const applicantSchema = z.object({
-  applicationNumber: requiredText(50, labelOf.applicationNumber),
-  schoolYearApplied: requiredText(20, labelOf.schoolYearApplied),
   submissionDate: requiredDate(labelOf.submissionDate),
-  name: requiredText(150, labelOf.name),
+  lastName: requiredText(100, labelOf.lastName),
+  firstName: requiredText(100, labelOf.firstName),
+  middleName: optionalText(100, labelOf.middleName),
   gender: z.enum(['Male', 'Female'], { errorMap: () => ({ message: 'Gender must be Male or Female.' }) }),
   contactNumber: requiredText(30, labelOf.contactNumber),
   familyIncome: optionalNumber(labelOf.familyIncome, { max: 999999999 }),
@@ -146,6 +147,7 @@ const applicantSchema = z.object({
   course: optionalText(150, labelOf.course),
   placeOfStudy: optionalText(150, labelOf.placeOfStudy),
   ...Object.fromEntries(GWA_FIELDS.map(([key, , label]) => [key, optionalNumber(label, { max: 100 })])),
+  awardsReceived: optionalText(255, labelOf.awardsReceived),
   ...Object.fromEntries(EMPLOYMENT_FIELDS.map(([key]) => [key, flag])),
   remarks: optionalText(100, labelOf.remarks),
   batch: optionalText(20, labelOf.batch),
@@ -184,8 +186,6 @@ const valuesFor = (data) => FIELDS.map(([key]) => data[key])
 // Adjust this if your requireAuth stores the logged-in user somewhere else.
 const isAdmin = (request) => request.user?.role === 'admin'
 
-const duplicateMessage = 'That application number already exists.'
-
 // ROUTES
 
 router.get(
@@ -202,18 +202,11 @@ router.post(
     const { data, error } = parseApplicant(request.body)
     if (error) return response.status(400).json({ message: error })
 
-    try {
-      const [result] = await sagutPool.query(
-        `INSERT INTO applicants (${COLUMN_LIST}) VALUES (${PLACEHOLDERS})`,
-        valuesFor(data)
-      )
-      return response.status(201).json({ id: result.insertId })
-    } catch (insertError) {
-      if (insertError.code === 'ER_DUP_ENTRY') {
-        return response.status(409).json({ message: duplicateMessage })
-      }
-      throw insertError
-    }
+    const [result] = await sagutPool.query(
+      `INSERT INTO applicants (${COLUMN_LIST}) VALUES (${PLACEHOLDERS})`,
+      valuesFor(data)
+    )
+    return response.status(201).json({ id: result.insertId })
   })
 )
 
@@ -226,14 +219,7 @@ router.put(
     const { data, error } = parseApplicant(request.body)
     if (error) return response.status(400).json({ message: error })
 
-    try {
-      await sagutPool.query(`UPDATE applicants SET ${SET_LIST} WHERE id = ?`, [...valuesFor(data), id])
-    } catch (updateError) {
-      if (updateError.code === 'ER_DUP_ENTRY') {
-        return response.status(409).json({ message: duplicateMessage })
-      }
-      throw updateError
-    }
+    await sagutPool.query(`UPDATE applicants SET ${SET_LIST} WHERE id = ?`, [...valuesFor(data), id])
 
     const [rows] = await sagutPool.query('SELECT * FROM applicants WHERE id = ?', [id])
     if (rows.length === 0) return response.status(404).json({ message: 'Applicant not found.' })

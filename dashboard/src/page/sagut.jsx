@@ -49,10 +49,10 @@ const gwaFields = [
 const gwaYears = [['firstYear', '1st Year'], ['secondYear', '2nd Year'], ['thirdYear', '3rd Year'], ['fourthYear', '4th Year']]
 
 const columns = [
-  { key: 'applicationNumber', label: 'Application Number', group: 'Application Info', width: 140 },
-  { key: 'schoolYearApplied', label: 'School Year Applied', group: 'Application Info', width: 130 },
   { key: 'submissionDate', label: 'Date of Submission of Application Letter', group: 'Application Info', width: 130 },
-  { key: 'name', label: 'Name', group: 'Applicant', sticky: true },
+  { key: 'lastName', label: 'Last Name', group: 'Applicant', sticky: true },
+  { key: 'firstName', label: 'First Name', group: 'Applicant' },
+  { key: 'middleName', label: 'Middle Name', group: 'Applicant' },
   { key: 'gender', label: 'Gender', group: 'Applicant' },
   { key: 'contactNumber', label: 'Contact Number', group: 'Applicant', width: 140 },
   { key: 'familyIncome', label: 'Average 12 Months Family Income (Php)', group: '1st Screening Requirements', width: 190 },
@@ -68,6 +68,7 @@ const columns = [
   { key: 'course', label: 'Course', group: 'Education / Admission', width: 180 },
   { key: 'placeOfStudy', label: 'Place of Study', group: 'Education / Admission', width: 130 },
   ...gwaFields.map(([key, label]) => ({ key, label, group: 'GWA' })),
+  { key: 'awardsReceived', label: 'Awards Received', group: 'Awards', width: 220 },
   ...employmentFields.map(([key, label]) => ({ key, label, group: 'Current Employment Status' })),
   { key: 'remarks', label: 'Remarks', group: 'Other', width: 140 },
   { key: 'batch', label: 'Batch', group: 'Other', width: 100 },
@@ -75,12 +76,18 @@ const columns = [
 
 // The table only shows the key columns; everything else is in the detail window.
 const tableKeys = [
-  'applicationNumber', 'name', 'schoolYearApplied', 'contactNumber', 'municipality',
+  'lastName', 'firstName', 'middleName', 'contactNumber', 'municipality',
   'barangay', 'course', 'placeOfStudy', 'batch', 'remarks',
 ]
-const hideOnNarrow = new Set(['schoolYearApplied', 'contactNumber', 'barangay', 'placeOfStudy'])
+const hideOnNarrow = new Set(['middleName', 'contactNumber', 'barangay', 'placeOfStudy'])
 const tableColumns = tableKeys.map((key) => columns.find((column) => column.key === key))
 const labelOf = Object.fromEntries(columns.map((column) => [column.key, column.label]))
+
+// "Last, First Middle"
+const fullName = (row) => {
+  const given = [row.firstName, row.middleName].filter(Boolean).join(' ')
+  return [row.lastName, given].filter(Boolean).join(', ')
+}
 
 const emptyRow = () => columns.reduce((row, column) => {
   row[column.key] = sectorFields.concat(employmentFields).some(([key]) => key === column.key) ? false : ''
@@ -132,7 +139,7 @@ function Sagut() {
 
   const updateField = (key, value) => setFormRow((current) => ({ ...current, [key]: value }))
   const saveRow = async () => {
-    const required = ['applicationNumber', 'schoolYearApplied', 'submissionDate', 'name', 'gender', 'contactNumber', 'municipality', 'barangay']
+    const required = ['submissionDate', 'lastName', 'firstName', 'gender', 'contactNumber', 'municipality', 'barangay']
     if (!formRow || required.some((key) => !String(formRow[key] || '').trim())) {
       setError('Please fill in all required fields.')
       return
@@ -202,10 +209,10 @@ function Sagut() {
               {loading ? <TableRow><TableCell align="center" colSpan={tableColumns.length + 1}>Loading applicants...</TableCell></TableRow>
                 : pagedRows.length === 0 ? <TableRow><TableCell align="center" colSpan={tableColumns.length + 1}>{search ? 'No applicants match your search.' : 'No applicants yet. Add an applicant to begin.'}</TableCell></TableRow>
                   : pagedRows.map((row) => <TableRow className="gip-data-row" hover key={row.id} onClick={() => setSelectedRow(row)}>
-                    {tableColumns.map((column) => <TableCell className={`${column.key === 'name' ? 'sagut-name-cell' : ''} ${hideOnNarrow.has(column.key) ? 'sagut-hide-narrow' : ''}`} key={column.key}>{display(row, column.key)}</TableCell>)}
+                    {tableColumns.map((column) => <TableCell className={`${column.key === 'lastName' ? 'sagut-name-cell' : ''} ${hideOnNarrow.has(column.key) ? 'sagut-hide-narrow' : ''}`} key={column.key}>{display(row, column.key)}</TableCell>)}
                     <TableCell className="gip-actions-cell" onClick={(event) => event.stopPropagation()}>
                       <Button size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
-                      {user?.role === 'admin' && <IconButton aria-label={`Delete ${row.name}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
+                      {user?.role === 'admin' && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
                     </TableCell>
                   </TableRow>)}
             </TableBody>
@@ -223,12 +230,12 @@ function Sagut() {
         <DialogContent dividers>
           {formRow && <>
             <SagutSection title="Applicant Information">
-              <Field span={3} label="Application Number" value={formRow.applicationNumber} onChange={(value) => updateField('applicationNumber', value)} required />
-              <Field span={3} label="School Year Applied" value={formRow.schoolYearApplied} onChange={(value) => updateField('schoolYearApplied', value)} required />
-              <Field span={6} label="Date of Submission of Application Letter" type="date" value={formRow.submissionDate} onChange={(value) => updateField('submissionDate', value)} required />
-              <Field span={6} label="Name" value={formRow.name} onChange={(value) => updateField('name', value)} required />
-              <FormControl className="sagut-span-3" required><FormLabel>Gender</FormLabel><RadioGroup row value={formRow.gender} onChange={(event) => updateField('gender', event.target.value)}><FormControlLabel control={<Radio />} label="Male" value="Male" /><FormControlLabel control={<Radio />} label="Female" value="Female" /></RadioGroup></FormControl>
-              <Field span={3} label="Contact Number" value={formRow.contactNumber} onChange={(value) => updateField('contactNumber', value)} required />
+              <Field span={4} label="Date of Submission of Application Letter" type="date" value={formRow.submissionDate} onChange={(value) => updateField('submissionDate', value)} required />
+              <Field span={4} label="Last Name" value={formRow.lastName} onChange={(value) => updateField('lastName', value)} required />
+              <Field span={4} label="First Name" value={formRow.firstName} onChange={(value) => updateField('firstName', value)} required />
+              <Field span={4} label="Middle Name" value={formRow.middleName} onChange={(value) => updateField('middleName', value)} />
+              <FormControl className="sagut-span-4" required><FormLabel>Gender</FormLabel><RadioGroup row value={formRow.gender} onChange={(event) => updateField('gender', event.target.value)}><FormControlLabel control={<Radio />} label="Male" value="Male" /><FormControlLabel control={<Radio />} label="Female" value="Female" /></RadioGroup></FormControl>
+              <Field span={4} label="Contact Number" value={formRow.contactNumber} onChange={(value) => updateField('contactNumber', value)} required />
             </SagutSection>
             <SagutSection title="1st Screening Requirements">
               <Field span={3} label="Average 12 Months Family Income" type="number" adornment="Php" value={formRow.familyIncome} onChange={(value) => updateField('familyIncome', value)} />
@@ -255,6 +262,19 @@ function Sagut() {
                 </Box>
               ))}
             </SagutSection>
+            <SagutSection title="Awards Received">
+              <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                className="sagut-span-12"
+                label="Awards Received"
+                placeholder="e.g. Dean's Lister, Best in Thesis"
+                value={formRow.awardsReceived ?? ''}
+                onChange={(event) => updateField('awardsReceived', event.target.value)}
+                slotProps={{ htmlInput: { maxLength: 255 } }}
+              />
+            </SagutSection>
             <SagutSection title="Current Employment Status"><CheckFields fields={employmentFields} row={formRow} updateField={updateField} /></SagutSection>
             <SagutSection title="Remarks and Batch">
               <FormControl className="sagut-span-5"><FormLabel>Remarks</FormLabel><Box className="sagut-option-list">{remarkOptions.map((option) => <Button key={option} variant={formRow.remarks === option ? 'contained' : 'outlined'} onClick={() => updateField('remarks', option)}>{option}</Button>)}</Box></FormControl>
@@ -266,14 +286,14 @@ function Sagut() {
         <DialogActions>{error && <Typography color="error" role="alert" sx={{ mr: 'auto', pl: 1 }} variant="body2">{error}</Typography>}<Button onClick={() => { setError(''); setFormRow(null) }}>Cancel</Button><Button disabled={saving} onClick={saveRow} variant="contained">{saving ? 'Saving...' : 'Save Applicant'}</Button></DialogActions>
       </Dialog>
       <Dialog fullWidth maxWidth="md" onClose={() => setSelectedRow(null)} open={Boolean(selectedRow)}>
-        <DialogTitle>{selectedRow?.name}</DialogTitle>
+        <DialogTitle>{selectedRow && fullName(selectedRow)}</DialogTitle>
         <DialogContent dividers>{selectedRow && <DetailView row={selectedRow} />}</DialogContent>
         <DialogActions>
           <Button onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
           <Button onClick={() => setSelectedRow(null)} variant="contained">Close</Button>
         </DialogActions>
       </Dialog>
-      <Dialog onClose={() => setDeleteTarget(null)} open={Boolean(deleteTarget)}><DialogTitle>Delete applicant?</DialogTitle><DialogContent>This will permanently remove {deleteTarget?.name}.</DialogContent><DialogActions><Button onClick={() => setDeleteTarget(null)}>Cancel</Button><Button color="error" onClick={deleteRow}>Delete</Button></DialogActions></Dialog>
+      <Dialog onClose={() => setDeleteTarget(null)} open={Boolean(deleteTarget)}><DialogTitle>Delete applicant?</DialogTitle><DialogContent>This will permanently remove {deleteTarget && fullName(deleteTarget)}.</DialogContent><DialogActions><Button onClick={() => setDeleteTarget(null)}>Cancel</Button><Button color="error" onClick={deleteRow}>Delete</Button></DialogActions></Dialog>
     </main>
   )
 }
@@ -315,8 +335,8 @@ function ChipList({ row, fields }) {
 function DetailView({ row }) {
   return (
     <>
-      <DetailSection title="Application Info"><DetailFields row={row} keys={['applicationNumber', 'schoolYearApplied', 'submissionDate']} /></DetailSection>
-      <DetailSection title="Applicant"><DetailFields row={row} keys={['name', 'gender', 'contactNumber']} /></DetailSection>
+      <DetailSection title="Application Info"><DetailFields row={row} keys={['submissionDate']} /></DetailSection>
+      <DetailSection title="Applicant"><DetailFields row={row} keys={['lastName', 'firstName', 'middleName', 'gender', 'contactNumber']} /></DetailSection>
       <DetailSection title="1st Screening Requirements"><DetailFields row={row} keys={['familyIncome', 'incomeSources', 'municipality', 'barangay', 'yearsResidency']} /></DetailSection>
       <DetailSection title="Sector"><ChipList row={row} fields={sectorFields} /></DetailSection>
       <DetailSection title="Education / Admission"><DetailFields row={row} keys={['highSchool', 'age', 'admissionTestDate', 'rating', 'course', 'placeOfStudy']} /></DetailSection>
@@ -332,6 +352,7 @@ function DetailView({ row }) {
           ))}
         </Box>
       </DetailSection>
+      <DetailSection title="Awards Received"><DetailFields row={row} keys={['awardsReceived']} /></DetailSection>
       <DetailSection title="Current Employment Status"><ChipList row={row} fields={employmentFields} /></DetailSection>
       <DetailSection title="Remarks and Batch"><DetailFields row={row} keys={['remarks', 'batch']} /></DetailSection>
     </>
