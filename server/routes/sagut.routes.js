@@ -1,11 +1,18 @@
 // Mounted at /api/sagut (requireAuth is applied in app.js)
+//   /batches                         list / create / open-close
+//   /batches/:batchId/applicants     applicants of ONE batch
 const express = require('express')
 const { z } = require('zod')
 
 const { sagutPool } = require('../db')
+const { requireAdmin } = require('../auth/auth.middleware')
+const { HttpError } = require('../errors')
 const { asyncHandler } = require('../utils/async-handler')
+const { parseId } = require('../utils/parse-id')
+const { createBatchesRouter, getBatchOrFail } = require('../utils/program-batches')
 
-const router = express.Router()
+// mergeParams lets this router see :batchId from the parent route.
+const applicants = express.Router({ mergeParams: true })
 
 // FIELD MAP: [name used by the React page, column in sagut.applicants, label for error messages]
 
@@ -58,7 +65,6 @@ const FIELDS = [
   ['awardsReceived', 'awards_received', 'Awards received'],
   ...EMPLOYMENT_FIELDS,
   ['remarks', 'remarks', 'Remarks'],
-  ['batch', 'batch', 'Batch'],
 ]
 
 const BOOLEAN_KEYS = new Set([...SECTOR_FIELDS, ...EMPLOYMENT_FIELDS].map(([key]) => key))
@@ -150,20 +156,16 @@ const applicantSchema = z.object({
   awardsReceived: optionalText(255, labelOf.awardsReceived),
   ...Object.fromEntries(EMPLOYMENT_FIELDS.map(([key]) => [key, flag])),
   remarks: optionalText(100, labelOf.remarks),
-  batch: optionalText(20, labelOf.batch),
 })
 
+// Returns the validated data or throws a 400 with the first problem found.
 function parseApplicant(body) {
   const result = applicantSchema.safeParse(body ?? {})
-  return result.success
-    ? { data: result.data }
-    : { error: result.error.issues[0].message }
+  if (!result.success) throw new HttpError(400, result.error.issues[0].message)
+  return result.data
 }
 
-function parseId(value) {
-  const id = Number(value)
-  return Number.isInteger(id) && id > 0 ? id : null
-}
+const batchIdOf = (request) => parseId(request.params.batchId, 'Batch ID')
 
 // Database row (snake_case) -> object the React page expects (camelCase).
 function toApi(row) {
@@ -183,66 +185,69 @@ function toApi(row) {
 
 const valuesFor = (data) => FIELDS.map(([key]) => data[key])
 
-// Adjust this if your requireAuth stores the logged-in user somewhere else.
-const isAdmin = (request) => request.user?.role === 'admin'
-
 // ROUTES
 
-router.get(
+applicants.get(
   '/',
-  asyncHandler(async (_request, response) => {
-    const [rows] = await sagutPool.query('SELECT * FROM applicants ORDER BY id')
+  asyncHandler(async (request, response) => {
+    const batchId = batchIdOf(request)
+    await getBatchOrFail(sagutPool, batchId)
+    const [rows] = await sagutPool.query('SELECT * FROM applicants WHERE batch_id = ? ORDER BY id', [batchId])
     response.json(rows.map(toApi))
   })
 )
 
-router.post(
+applicants.post(
   '/',
   asyncHandler(async (request, response) => {
-    const { data, error } = parseApplicant(request.body)
-    if (error) return response.status(400).json({ message: error })
+    const batchId = batchIdOf(request)
+    await getBatchOrFail(sagutPool, batchId, { requireOpen: true })
+    const data = parseApplicant(request.body)
 
     const [result] = await sagutPool.query(
-      `INSERT INTO applicants (${COLUMN_LIST}) VALUES (${PLACEHOLDERS})`,
-      valuesFor(data)
+      `INSERT INTO applicants (${COLUMN_LIST}, batch_id) VALUES (${PLACEHOLDERS}, ?)`,
+      [...valuesFor(data), batchId]
     )
-    return response.status(201).json({ id: result.insertId })
+    response.status(201).json({ id: result.insertId })
   })
 )
 
-router.put(
+applicants.put(
   '/:id',
   asyncHandler(async (request, response) => {
-    const id = parseId(request.params.id)
-    if (!id) return response.status(400).json({ message: 'Invalid applicant id.' })
+    const batchId = batchIdOf(request)
+    const id = parseId(request.params.id, 'Applicant ID')
+    await getBatchOrFail(sagutPool, batchId, { requireOpen: true })
+    const data = parseApplicant(request.body)
 
-    const { data, error } = parseApplicant(request.body)
-    if (error) return response.status(400).json({ message: error })
+    await sagutPool.query(
+      `UPDATE applicants SET ${SET_LIST} WHERE id = ? AND batch_id = ?`,
+      [...valuesFor(data), id, batchId]
+    )
 
-    await sagutPool.query(`UPDATE applicants SET ${SET_LIST} WHERE id = ?`, [...valuesFor(data), id])
+    const [rows] = await sagutPool.query('SELECT * FROM applicants WHERE id = ? AND batch_id = ?', [id, batchId])
+    if (rows.length === 0) throw new HttpError(404, 'Applicant not found in this batch.')
 
-    const [rows] = await sagutPool.query('SELECT * FROM applicants WHERE id = ?', [id])
-    if (rows.length === 0) return response.status(404).json({ message: 'Applicant not found.' })
-
-    return response.json(toApi(rows[0]))
+    response.json(toApi(rows[0]))
   })
 )
 
-router.delete(
+applicants.delete(
   '/:id',
+  requireAdmin,
   asyncHandler(async (request, response) => {
-    if (!isAdmin(request)) {
-      return response.status(403).json({ message: 'Only an admin can delete applicants.' })
-    }
+    const batchId = batchIdOf(request)
+    const id = parseId(request.params.id, 'Applicant ID')
+    await getBatchOrFail(sagutPool, batchId, { requireOpen: true })
 
-    const id = parseId(request.params.id)
-    if (!id) return response.status(400).json({ message: 'Invalid applicant id.' })
+    const [result] = await sagutPool.query('DELETE FROM applicants WHERE id = ? AND batch_id = ?', [id, batchId])
+    if (result.affectedRows === 0) throw new HttpError(404, 'Applicant not found in this batch.')
 
-    const [result] = await sagutPool.query('DELETE FROM applicants WHERE id = ?', [id])
-    if (result.affectedRows === 0) return response.status(404).json({ message: 'Applicant not found.' })
-
-    return response.json({ message: 'Applicant deleted.' })
+    response.status(204).end()
   })
 )
+
+const router = express.Router()
+router.use('/batches', createBatchesRouter({ pool: sagutPool, program: 'SAGUT', applicantsRouter: applicants }))
 
 module.exports = router
