@@ -268,7 +268,6 @@ function Sagut() {
                 multiline
                 minRows={2}
                 className="sagut-span-12"
-                label="Awards Received"
                 placeholder="e.g. Dean's Lister, Best in Thesis"
                 value={formRow.awardsReceived ?? ''}
                 onChange={(event) => updateField('awardsReceived', event.target.value)}

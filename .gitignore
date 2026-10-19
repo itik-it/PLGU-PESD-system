@@ -58,3 +58,16 @@ coverage/
 Thumbs.db
 Desktop.ini
 graphify-out/
+
+
+# ============================================================
+# Applicant data (personal information, never commit)
+# ============================================================
+
+*.xlsx
+*.xls
+*.csv
+*.dump
+*.sql.bak
+backups/
+uploads/

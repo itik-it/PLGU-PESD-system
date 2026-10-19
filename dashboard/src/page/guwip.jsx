@@ -237,7 +237,7 @@ function GuwipTable({ batch, onBack }) {
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
           <Typography className="gip-page-title" component="h1" variant="h5">GUWIP – Gayyem Ti Umili Work Internship Program · {batch.name}</Typography>
-          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review GUWIP applicants. Click a row to view the full application.'}</Typography>
+          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review GUWIP applicants.'}</Typography>
         </Box>
         <Box className="gip-record-count"><strong>{rows.length}</strong><span>applicants</span></Box>
       </Box>

@@ -33,7 +33,7 @@ const today = new Date().toISOString().slice(0, 10)
 
 const civilStatusOptions = ['Single', 'Married', 'Widowed', 'Separated']
 const beneficiaryTypes = ['Father', 'Mother', 'Son', 'Daughter']
-const remarkOptions = ['Q', 'DQ']
+const remarkOptions = ['Qualified', 'Disqualified']
 
 const columns = [
   { key: 'lastName', label: 'Last Name' },
@@ -183,7 +183,7 @@ function TrPaTuTable({ batch, onBack }) {
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
           <Typography className="gip-page-title" component="h1" variant="h5">TrPaTu – Trabaho Para Ti Umili · {batch.name}</Typography>
-          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review TrPaTu beneficiary information.'}</Typography>
+          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review TrPaTu applicant information.'}</Typography>
         </Box>
         <Box className="gip-record-count"><strong>{rows.length}</strong><span>applicants</span></Box>
       </Box>

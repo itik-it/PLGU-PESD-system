@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files (Vite loads .env.* automatically)
+.env
+.env.*
+!.env.example
+
+# Applicant data files
+*.xlsx
+*.xls
+*.csv
+
+# OS
+Thumbs.db
