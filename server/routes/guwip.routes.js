@@ -1,8 +1,14 @@
+// Mounted at /api/guwip (requireAuth is applied in app.js)
+//   /batches                         list / create / open-close
+//   /batches/:batchId/applicants     applicants of ONE batch
 const express = require('express')
 const { guwipPool, withTransaction } = require('../db')
+const { requireAdmin } = require('../auth/auth.middleware')
+const { HttpError } = require('../errors')
 const { asyncHandler } = require('../utils/async-handler')
+const { parseId } = require('../utils/parse-id')
+const { createBatchesRouter, getBatchOrFail } = require('../utils/program-batches')
 
-const router = express.Router()
 const fields = {
   lastName: 'last_name', firstName: 'first_name', middleName: 'middle_name', nameExtension: 'name_extension',
   birthdate: 'birthdate', age: 'age', sex: 'sex', civilStatus: 'civil_status', street: 'street',
@@ -20,8 +26,14 @@ const statusFields = {
 const select = ['id', ...Object.entries(fields).map(([key, column]) => `${column} AS ${key}`)].join(', ')
 const applicantData = (body) => Object.fromEntries(Object.entries(fields).map(([key, column]) => [column, body?.[key] === '' ? null : body?.[key] ?? null]))
 
-async function readApplicants() {
-  const [rows] = await guwipPool.query(`SELECT ${select} FROM applicants ORDER BY id`)
+const batchIdOf = (request) => parseId(request.params.batchId, 'Batch ID')
+
+// Applicants of one batch (or just one applicant of that batch when applicantId is given).
+async function readApplicants(batchId, applicantId = null) {
+  const [rows] = await guwipPool.query(
+    `SELECT ${select} FROM applicants WHERE batch_id = ? ${applicantId ? 'AND id = ?' : ''} ORDER BY id`,
+    applicantId ? [batchId, applicantId] : [batchId]
+  )
   if (!rows.length) return []
   const ids = rows.map((row) => row.id)
   const [statuses] = await guwipPool.query(
@@ -44,13 +56,23 @@ async function readApplicants() {
   return rows.map((row) => ({ ...row, ...statusById[row.id], trainings: trainingById[row.id] }))
 }
 
-async function saveApplicant(id, body) {
+async function readOne(batchId, applicantId) {
+  const [row] = await readApplicants(batchId, applicantId)
+  if (!row) throw new HttpError(404, 'Applicant not found in this batch.')
+  return row
+}
+
+async function saveApplicant(id, batchId, body) {
   return withTransaction(guwipPool, async (connection) => {
+    await getBatchOrFail(connection, batchId, { requireOpen: true })
+
     let applicantId = id
     if (id === null) {
-      const [result] = await connection.query('INSERT INTO applicants SET ?', applicantData(body))
+      const [result] = await connection.query('INSERT INTO applicants SET ?', { ...applicantData(body), batch_id: batchId })
       applicantId = result.insertId
     } else {
+      const [existing] = await connection.query('SELECT id FROM applicants WHERE id = ? AND batch_id = ? FOR UPDATE', [id, batchId])
+      if (!existing.length) throw new HttpError(404, 'Applicant not found in this batch.')
       await connection.query('UPDATE applicants SET ? WHERE id = ?', [applicantData(body), id])
       await connection.query('DELETE FROM applicant_employment_statuses WHERE applicant_id = ?', [id])
       await connection.query('DELETE FROM applicant_trainings WHERE applicant_id = ?', [id])
@@ -73,18 +95,35 @@ async function saveApplicant(id, body) {
   })
 }
 
-router.get('/', asyncHandler(async (_request, response) => response.json(await readApplicants())))
-router.post('/', asyncHandler(async (request, response) => {
-  const id = await saveApplicant(null, request.body)
-  response.status(201).json((await readApplicants()).find((row) => row.id === id))
+// mergeParams lets this router see :batchId from the parent route.
+const applicants = express.Router({ mergeParams: true })
+
+applicants.get('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(guwipPool, batchId)
+  response.json(await readApplicants(batchId))
 }))
-router.put('/:id', asyncHandler(async (request, response) => {
-  await saveApplicant(Number(request.params.id), request.body)
-  response.json((await readApplicants()).find((row) => row.id === Number(request.params.id)))
+applicants.post('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  const id = await saveApplicant(null, batchId, request.body)
+  response.status(201).json(await readOne(batchId, id))
 }))
-router.delete('/:id', asyncHandler(async (request, response) => {
-  await guwipPool.query('DELETE FROM applicants WHERE id = ?', [request.params.id])
+applicants.put('/:id', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  const id = parseId(request.params.id, 'Applicant ID')
+  await saveApplicant(id, batchId, request.body)
+  response.json(await readOne(batchId, id))
+}))
+applicants.delete('/:id', requireAdmin, asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  const id = parseId(request.params.id, 'Applicant ID')
+  await getBatchOrFail(guwipPool, batchId, { requireOpen: true })
+  const [result] = await guwipPool.query('DELETE FROM applicants WHERE id = ? AND batch_id = ?', [id, batchId])
+  if (!result.affectedRows) throw new HttpError(404, 'Applicant not found in this batch.')
   response.status(204).end()
 }))
+
+const router = express.Router()
+router.use('/batches', createBatchesRouter({ pool: guwipPool, program: 'GUWIP', applicantsRouter: applicants }))
 
 module.exports = router

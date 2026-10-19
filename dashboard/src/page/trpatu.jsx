@@ -26,6 +26,7 @@ import {
 } from '@mui/material'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
+import BatchList from '../components/BatchList.jsx'
 
 const rowsPerPage = 10
 const today = new Date().toISOString().slice(0, 10)
@@ -105,7 +106,7 @@ const display = (row, key) => {
   return row[key] || '—'
 }
 
-function TrPaTu() {
+function TrPaTuTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -116,10 +117,12 @@ function TrPaTu() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const isClosed = batch.status === 'closed'
+  const applicantsPath = `/trpatu/batches/${batch.id}/applicants`
 
   useEffect(() => {
-    api.get('/trpatu').then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
-  }, [])
+    api.get(applicantsPath).then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
+  }, [applicantsPath])
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -148,8 +151,8 @@ function TrPaTu() {
     setError('')
     try {
       const saved = formRow.id === null
-        ? await api.post('/trpatu', formRow)
-        : await api.put(`/trpatu/${formRow.id}`, formRow)
+        ? await api.post(applicantsPath, formRow)
+        : await api.put(`${applicantsPath}/${formRow.id}`, formRow)
       const savedRow = formRow.id === null ? fromApi({ ...formRow, id: saved.id }) : fromApi(saved)
       setRows((current) => formRow.id === null ? [...current, savedRow] : current.map((row) => row.id === savedRow.id ? savedRow : row))
       setFormRow(null)
@@ -162,7 +165,7 @@ function TrPaTu() {
   }
   const deleteRow = async () => {
     try {
-      await api.delete(`/trpatu/${deleteTarget.id}`)
+      await api.delete(`${applicantsPath}/${deleteTarget.id}`)
       setRows((current) => current.filter((row) => row.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch (deleteError) {
@@ -174,13 +177,13 @@ function TrPaTu() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-          <Button className="gip-home-button" href="/">
+          <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
-             Back to Dashboard
+             All batches
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
-          <Typography className="gip-page-title" component="h1" variant="h5">TrPaTu – Trabaho Para Ti Umili</Typography>
-          <Typography className="gip-page-hint" component="p" variant="body2">Manage, search, and review TrPaTu beneficiary information.</Typography>
+          <Typography className="gip-page-title" component="h1" variant="h5">TrPaTu – Trabaho Para Ti Umili · {batch.name}</Typography>
+          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review TrPaTu beneficiary information.'}</Typography>
         </Box>
         <Box className="gip-record-count"><strong>{rows.length}</strong><span>applicants</span></Box>
       </Box>
@@ -190,7 +193,7 @@ function TrPaTu() {
           {error && !formRow && <Typography color="error" role="alert" variant="body2">{error}</Typography>}
           <Box className="gip-toolbar-actions">
             <TextField aria-label="Search TrPaTu applicants" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search applicants..." size="small" value={search} />
-            <Button className="gip-add-button" variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
+            <Button className="gip-add-button" disabled={isClosed} variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
           </Box>
         </Box>
         <TableContainer className="gip-table-container sagut-table-container">
@@ -207,8 +210,8 @@ function TrPaTu() {
                   : pagedRows.map((row) => <TableRow className="gip-data-row" hover key={row.id} onClick={() => setSelectedRow(row)}>
                     {tableColumns.map((column) => <TableCell className={`${column.key === 'lastName' ? 'sagut-name-cell' : ''} ${hideOnNarrow.has(column.key) ? 'sagut-hide-narrow' : ''}`} key={column.key}>{display(row, column.key)}</TableCell>)}
                     <TableCell className="gip-actions-cell" onClick={(event) => event.stopPropagation()}>
-                      <Button size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
-                      {user?.role === 'admin' && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
+                      <Button disabled={isClosed} size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
+                      {user?.role === 'admin' && !isClosed && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
                     </TableCell>
                   </TableRow>)}
             </TableBody>
@@ -259,7 +262,7 @@ function TrPaTu() {
         <DialogTitle>{selectedRow && fullName(selectedRow)}</DialogTitle>
         <DialogContent dividers>{selectedRow && <DetailView row={selectedRow} />}</DialogContent>
         <DialogActions>
-          <Button onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
+          <Button disabled={isClosed} onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
           <Button onClick={() => setSelectedRow(null)} variant="contained">Close</Button>
         </DialogActions>
       </Dialog>
@@ -305,6 +308,17 @@ function DetailView({ row }) {
       <DetailSection title="Remarks"><DetailFields row={row} keys={['remarks']} /></DetailSection>
     </>
   )
+}
+
+// Pick a batch first, then show that batch's table.
+function TrPaTu() {
+  const [batch, setBatch] = useState(null)
+
+  if (!batch) {
+    return <BatchList basePath="/trpatu/batches" title="TrPaTu Batches" noun="applicant" nounPlural="applicants" onOpen={setBatch} />
+  }
+
+  return <TrPaTuTable key={batch.id} batch={batch} onBack={() => setBatch(null)} />
 }
 
 export default TrPaTu

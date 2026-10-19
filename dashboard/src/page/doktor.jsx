@@ -25,11 +25,11 @@ import {
 } from '@mui/material'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
+import BatchList from '../components/BatchList.jsx'
 
 const rowsPerPage = 10
 const today = new Date().toISOString().slice(0, 10)
 
-const batchCount = 4 
 const civilStatusOptions = ['Single', 'Married', 'Widowed', 'Separated']
 const gwaFields = [
   ['gwaFirstYear', '1st Year'],
@@ -62,14 +62,13 @@ const columns = [
   { key: 'gwa', label: 'GWA' },
   { key: 'awards', label: 'Award/s Received' },
   ...gwaFields.map(([key, label]) => ({ key, label: `GWA · ${label}` })),
-  { key: 'batch', label: 'Batch' },
 ]
 const labelOf = Object.fromEntries(columns.map((column) => [column.key, column.label]))
 const dateKeys = new Set(['dateApplied', 'birthdate', 'medExamDate', 'nmatExamDate'])
 const percentKeys = new Set(['gwa', ...gwaFields.map(([key]) => key)])
 
 // The table only shows the key columns; everything else is in the detail window.
-const tableKeys = ['lastName', 'firstName', 'middleName', 'contactNumber', 'premedCourse', 'schoolLastAttended', 'gwa', 'batch']
+const tableKeys = ['lastName', 'firstName', 'middleName', 'contactNumber', 'premedCourse', 'schoolLastAttended', 'gwa']
 const hideOnNarrow = new Set(['middleName', 'contactNumber', 'schoolLastAttended'])
 const tableColumns = tableKeys.map((key) => ({ key, label: key === 'gwa' ? 'GWA' : labelOf[key] }))
 
@@ -106,7 +105,7 @@ const calcAge = (value) => {
   return age >= 0 ? String(age) : ''
 }
 
-function Doktor() {
+function DoktorTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -117,10 +116,12 @@ function Doktor() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const isClosed = batch.status === 'closed'
+  const applicantsPath = `/doktor/batches/${batch.id}/applicants`
 
   useEffect(() => {
-    api.get('/doktor').then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
-  }, [])
+    api.get(applicantsPath).then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
+  }, [applicantsPath])
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -150,8 +151,8 @@ function Doktor() {
     setError('')
     try {
       const saved = formRow.id === null
-        ? await api.post('/doktor', formRow)
-        : await api.put(`/doktor/${formRow.id}`, formRow)
+        ? await api.post(applicantsPath, formRow)
+        : await api.put(`${applicantsPath}/${formRow.id}`, formRow)
       const savedRow = formRow.id === null ? fromApi({ ...formRow, id: saved.id }) : fromApi(saved)
       setRows((current) => formRow.id === null ? [...current, savedRow] : current.map((row) => row.id === savedRow.id ? savedRow : row))
       setFormRow(null)
@@ -164,7 +165,7 @@ function Doktor() {
   }
   const deleteRow = async () => {
     try {
-      await api.delete(`/doktor/${deleteTarget.id}`)
+      await api.delete(`${applicantsPath}/${deleteTarget.id}`)
       setRows((current) => current.filter((row) => row.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch (deleteError) {
@@ -176,13 +177,13 @@ function Doktor() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-          <Button className="gip-home-button" href="/">
+          <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
-             Back to Dashboard
+             All batches
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
-          <Typography className="gip-page-title" component="h1" variant="h5">Doktor ti Umili Scholarship Program</Typography>
-          <Typography className="gip-page-hint" component="p" variant="body2">Manage, search, and review Nueva Vizcaya Doktor ti Umili scholarship applicants.</Typography>
+          <Typography className="gip-page-title" component="h1" variant="h5">Doktor ti Umili Scholarship Program · {batch.name}</Typography>
+          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review Nueva Vizcaya Doktor ti Umili scholarship applicants.'}</Typography>
         </Box>
         <Box className="gip-record-count"><strong>{rows.length}</strong><span>applicants</span></Box>
       </Box>
@@ -192,7 +193,7 @@ function Doktor() {
           {error && !formRow && <Typography color="error" role="alert" variant="body2">{error}</Typography>}
           <Box className="gip-toolbar-actions">
             <TextField aria-label="Search Doktor ti Umili applicants" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search applicants..." size="small" value={search} />
-            <Button className="gip-add-button" variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
+            <Button className="gip-add-button" disabled={isClosed} variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
           </Box>
         </Box>
         <TableContainer className="gip-table-container sagut-table-container">
@@ -209,8 +210,8 @@ function Doktor() {
                   : pagedRows.map((row) => <TableRow className="gip-data-row" hover key={row.id} onClick={() => setSelectedRow(row)}>
                     {tableColumns.map((column) => <TableCell className={`${column.key === 'lastName' ? 'sagut-name-cell' : ''} ${hideOnNarrow.has(column.key) ? 'sagut-hide-narrow' : ''}`} key={column.key}>{display(row, column.key)}</TableCell>)}
                     <TableCell className="gip-actions-cell" onClick={(event) => event.stopPropagation()}>
-                      <Button size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
-                      {user?.role === 'admin' && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
+                      <Button disabled={isClosed} size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
+                      {user?.role === 'admin' && !isClosed && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
                     </TableCell>
                   </TableRow>)}
             </TableBody>
@@ -229,7 +230,6 @@ function Doktor() {
           {formRow && <>
             <FormSection title="Application Info">
               <Field span={6} label="Date of Application" type="date" value={formRow.dateApplied} onChange={(value) => updateField('dateApplied', value)} required />
-              <TextField select className="sagut-span-6" label="Batch" value={formRow.batch} onChange={(event) => updateField('batch', event.target.value)}>{Array.from({ length: batchCount }, (_, index) => <MenuItem key={index + 1} value={`Batch ${index + 1}`}>Batch {index + 1}</MenuItem>)}</TextField>
             </FormSection>
             <FormSection title="Applicant Information">
               <Field span={4} label="Last Name" value={formRow.lastName} onChange={(value) => updateField('lastName', value)} required />
@@ -278,7 +278,7 @@ function Doktor() {
         <DialogTitle>{selectedRow && fullName(selectedRow)}</DialogTitle>
         <DialogContent dividers>{selectedRow && <DetailView row={selectedRow} />}</DialogContent>
         <DialogActions>
-          <Button onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
+          <Button disabled={isClosed} onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
           <Button onClick={() => setSelectedRow(null)} variant="contained">Close</Button>
         </DialogActions>
       </Dialog>
@@ -317,13 +317,24 @@ function DetailFields({ row, keys }) {
 function DetailView({ row }) {
   return (
     <>
-      <DetailSection title="Application Info"><DetailFields row={row} keys={['dateApplied', 'batch']} /></DetailSection>
+      <DetailSection title="Application Info"><DetailFields row={row} keys={['dateApplied']} /></DetailSection>
       <DetailSection title="Applicant Information"><DetailFields row={row} keys={['lastName', 'firstName', 'middleName', 'nameExtension', 'birthdate', 'age', 'sex', 'civilStatus', 'address', 'contactNumber', 'yearsResidency']} /></DetailSection>
       <DetailSection title="Pre-Med and Examinations"><DetailFields row={row} keys={['premedCourse', 'medExamResult', 'medExamDate', 'nmatResult', 'nmatExamDate']} /></DetailSection>
       <DetailSection title="School and Awards"><DetailFields row={row} keys={['schoolLastAttended', 'gwa', 'awards']} /></DetailSection>
       <DetailSection title="GWA per Year Level"><DetailFields row={row} keys={gwaFields.map(([key]) => key)} /></DetailSection>
     </>
   )
+}
+
+// Pick a batch first, then show that batch's table.
+function Doktor() {
+  const [batch, setBatch] = useState(null)
+
+  if (!batch) {
+    return <BatchList basePath="/doktor/batches" title="Doktor ti Umili Batches" noun="applicant" nounPlural="applicants" onOpen={setBatch} />
+  }
+
+  return <DoktorTable key={batch.id} batch={batch} onBack={() => setBatch(null)} />
 }
 
 export default Doktor

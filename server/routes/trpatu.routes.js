@@ -1,8 +1,14 @@
+// Mounted at /api/trpatu (requireAuth is applied in app.js)
+//   /batches                         list / create / open-close
+//   /batches/:batchId/applicants     applicants of ONE batch
 const express = require('express')
 const { trpatuPool, withTransaction } = require('../db')
+const { requireAdmin } = require('../auth/auth.middleware')
+const { HttpError } = require('../errors')
 const { asyncHandler } = require('../utils/async-handler')
+const { parseId } = require('../utils/parse-id')
+const { createBatchesRouter, getBatchOrFail } = require('../utils/program-batches')
 
-const router = express.Router()
 const applicantFields = {
   lastName: 'last_name', firstName: 'first_name', middleName: 'middle_name', nameExtension: 'name_extension',
   birthdate: 'birthdate', address: 'address', idType: 'id_type', idNumber: 'id_number', contactNumber: 'contact_number',
@@ -17,37 +23,65 @@ const select = `a.id, ${Object.entries(applicantFields).map(([key, column]) => `
   b.last_name AS beneficiaryLastName, b.skills_training_need AS skillsTrainingNeed, b.year_level AS yearLevel`
 const values = (body, map) => Object.fromEntries(Object.entries(map).map(([key, column]) => [column, body?.[key] === '' ? null : body?.[key] ?? null]))
 
-async function findOne(pool, id) {
-  const [rows] = await pool.query(`SELECT ${select} FROM applicants a LEFT JOIN beneficiaries b ON b.applicant_id = a.id WHERE a.id = ?`, [id])
+const batchIdOf = (request) => parseId(request.params.batchId, 'Batch ID')
+
+async function findOne(pool, id, batchId) {
+  const [rows] = await pool.query(
+    `SELECT ${select} FROM applicants a LEFT JOIN beneficiaries b ON b.applicant_id = a.id WHERE a.id = ? AND a.batch_id = ?`,
+    [id, batchId]
+  )
+  if (!rows.length) throw new HttpError(404, 'Applicant not found in this batch.')
   return rows[0]
 }
 
-router.get('/', asyncHandler(async (_request, response) => {
-  const [rows] = await trpatuPool.query(`SELECT ${select} FROM applicants a LEFT JOIN beneficiaries b ON b.applicant_id = a.id ORDER BY a.id`)
+// mergeParams lets this router see :batchId from the parent route.
+const applicants = express.Router({ mergeParams: true })
+
+applicants.get('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(trpatuPool, batchId)
+  const [rows] = await trpatuPool.query(
+    `SELECT ${select} FROM applicants a LEFT JOIN beneficiaries b ON b.applicant_id = a.id WHERE a.batch_id = ? ORDER BY a.id`,
+    [batchId]
+  )
   response.json(rows)
 }))
 
-router.post('/', asyncHandler(async (request, response) => {
+applicants.post('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
   const id = await withTransaction(trpatuPool, async (connection) => {
-    const [result] = await connection.query('INSERT INTO applicants SET ?', values(request.body, applicantFields))
+    await getBatchOrFail(connection, batchId, { requireOpen: true })
+    const [result] = await connection.query('INSERT INTO applicants SET ?', { ...values(request.body, applicantFields), batch_id: batchId })
     await connection.query('INSERT INTO beneficiaries SET ?', { applicant_id: result.insertId, ...values(request.body, beneficiaryFields) })
     return result.insertId
   })
-  response.status(201).json(await findOne(trpatuPool, id))
+  response.status(201).json(await findOne(trpatuPool, id, batchId))
 }))
 
-router.put('/:id', asyncHandler(async (request, response) => {
+applicants.put('/:id', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  const id = parseId(request.params.id, 'Applicant ID')
   await withTransaction(trpatuPool, async (connection) => {
-    await connection.query('UPDATE applicants SET ? WHERE id = ?', [values(request.body, applicantFields), request.params.id])
-    await connection.query('DELETE FROM beneficiaries WHERE applicant_id = ?', [request.params.id])
-    await connection.query('INSERT INTO beneficiaries SET ?', { applicant_id: request.params.id, ...values(request.body, beneficiaryFields) })
+    await getBatchOrFail(connection, batchId, { requireOpen: true })
+    const [existing] = await connection.query('SELECT id FROM applicants WHERE id = ? AND batch_id = ? FOR UPDATE', [id, batchId])
+    if (!existing.length) throw new HttpError(404, 'Applicant not found in this batch.')
+    await connection.query('UPDATE applicants SET ? WHERE id = ?', [values(request.body, applicantFields), id])
+    await connection.query('DELETE FROM beneficiaries WHERE applicant_id = ?', [id])
+    await connection.query('INSERT INTO beneficiaries SET ?', { applicant_id: id, ...values(request.body, beneficiaryFields) })
   })
-  response.json(await findOne(trpatuPool, request.params.id))
+  response.json(await findOne(trpatuPool, id, batchId))
 }))
 
-router.delete('/:id', asyncHandler(async (request, response) => {
-  await trpatuPool.query('DELETE FROM applicants WHERE id = ?', [request.params.id])
+applicants.delete('/:id', requireAdmin, asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  const id = parseId(request.params.id, 'Applicant ID')
+  await getBatchOrFail(trpatuPool, batchId, { requireOpen: true })
+  const [result] = await trpatuPool.query('DELETE FROM applicants WHERE id = ? AND batch_id = ?', [id, batchId])
+  if (!result.affectedRows) throw new HttpError(404, 'Applicant not found in this batch.')
   response.status(204).end()
 }))
+
+const router = express.Router()
+router.use('/batches', createBatchesRouter({ pool: trpatuPool, program: 'TRPATU', applicantsRouter: applicants }))
 
 module.exports = router

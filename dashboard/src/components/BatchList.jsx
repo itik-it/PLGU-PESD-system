@@ -48,7 +48,7 @@ function splitYears(groups) {
 }
 
 // Small dialog: the admin types a year, the server picks the batch number.
-function CreateBatchDialog({ onClose, onCreated }) {
+function CreateBatchDialog({ basePath, onClose, onCreated }) {
   const [year, setYear] = useState(String(CURRENT_YEAR))
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -58,7 +58,7 @@ function CreateBatchDialog({ onClose, onCreated }) {
     setSaving(true)
     setError('')
     try {
-      await api.post('/gip/batches', { year: Number(year) })
+      await api.post(basePath, { year: Number(year) })
       onCreated()
     } catch (saveError) {
       setError(saveError.message)
@@ -101,13 +101,13 @@ function CreateBatchDialog({ onClose, onCreated }) {
 }
 
 // Closing a batch locks it for everyone, so ask once before doing it.
-function ConfirmCloseDialog({ batch, busy, onCancel, onConfirm }) {
+function ConfirmCloseDialog({ batch, busy, nounPlural, onCancel, onConfirm }) {
   return (
     <Dialog open onClose={busy ? undefined : onCancel} fullWidth maxWidth="xs">
       <DialogTitle sx={{ fontWeight: 800 }}>Close {batch.name}?</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          Nobody can add or edit beneficiaries in a closed batch until an administrator reopens it.
+          Nobody can add or edit {nounPlural} in a closed batch until an administrator reopens it.
         </DialogContentText>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -123,7 +123,7 @@ function ConfirmCloseDialog({ batch, busy, onCancel, onConfirm }) {
 }
 
 // The whole card opens the batch. Admin actions live in the "..." menu.
-function BatchCard({ batch, isAdmin, busy, onOpen, onClose, onReopen }) {
+function BatchCard({ batch, isAdmin, busy, noun, nounPlural, onOpen, onClose, onReopen }) {
   const [anchor, setAnchor] = useState(null)
   const isClosed = batch.status === 'closed'
   const isEmpty = batch.applicantCount === 0
@@ -162,7 +162,7 @@ function BatchCard({ batch, isAdmin, busy, onOpen, onClose, onReopen }) {
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            {batch.applicantCount} {batch.applicantCount === 1 ? 'beneficiary' : 'beneficiaries'}
+            {batch.applicantCount} {batch.applicantCount === 1 ? noun : nounPlural}
           </Typography>
           <Chip
             size="small"
@@ -201,7 +201,7 @@ function BatchCard({ batch, isAdmin, busy, onOpen, onClose, onReopen }) {
   )
 }
 
-function YearSection({ group, expanded, onToggle, isAdmin, busyId, onOpen, onClose, onReopen }) {
+function YearSection({ group, expanded, onToggle, isAdmin, busyId, noun, nounPlural, onOpen, onClose, onReopen }) {
   const { year, batches, total } = group
   const panelId = `year-panel-${year}`
 
@@ -230,7 +230,7 @@ function YearSection({ group, expanded, onToggle, isAdmin, busyId, onOpen, onClo
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {batches.length} {batches.length === 1 ? 'batch' : 'batches'}, {total}{' '}
-          {total === 1 ? 'beneficiary' : 'beneficiaries'}
+          {total === 1 ? noun : nounPlural}
         </Typography>
       </ButtonBase>
 
@@ -253,6 +253,8 @@ function YearSection({ group, expanded, onToggle, isAdmin, busyId, onOpen, onClo
               busy={busyId === batch.id}
               onOpen={onOpen}
               onClose={onClose}
+              noun={noun}
+              nounPlural={nounPlural}
               onReopen={onReopen}
             />
           ))}
@@ -263,7 +265,14 @@ function YearSection({ group, expanded, onToggle, isAdmin, busyId, onOpen, onClo
 }
 
 // First screen of the GIP page: pick a batch (or create one if you are an admin).
-export default function BatchList({ onOpen }) {
+// Defaults are for GIP. Other programs pass their own basePath/title/noun.
+export default function BatchList({
+  onOpen,
+  basePath = '/gip/batches',
+  title = 'GIP Batches',
+  noun = 'beneficiary',
+  nounPlural = 'beneficiaries',
+}) {
   const { user } = useAuth()
   const { navigate } = useRouter()
   const isAdmin = user?.role === 'admin'
@@ -279,7 +288,7 @@ export default function BatchList({ onOpen }) {
 
   const loadBatches = () =>
     api
-      .get('/gip/batches')
+      .get(basePath)
       .then(setBatches)
       .catch((loadError) => setError(loadError.message))
       .finally(() => setLoading(false))
@@ -292,7 +301,7 @@ export default function BatchList({ onOpen }) {
     setBusyId(batch.id)
     setError('')
     try {
-      const updated = await api.patch(`/gip/batches/${batch.id}`, { status })
+      const updated = await api.patch(`${basePath}/${batch.id}`, { status })
       setBatches((current) => current.map((item) => (item.id === updated.id ? updated : item)))
     } catch (toggleError) {
       setError(toggleError.message)
@@ -328,6 +337,8 @@ export default function BatchList({ onOpen }) {
       onOpen={onOpen}
       onClose={setClosing}
       onReopen={(batch) => setStatus(batch, 'open')}
+      noun={noun}
+      nounPlural={nounPlural}
     />
   )
 
@@ -343,10 +354,10 @@ export default function BatchList({ onOpen }) {
       <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <Box>
           <Typography component="h1" variant="h5" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: '-0.04em' }}>
-            GIP Batches
+            {title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Choose a batch to view or encode its beneficiaries.
+            Choose a batch to view or encode its {nounPlural}.
           </Typography>
         </Box>
         {isAdmin && (
@@ -387,7 +398,7 @@ export default function BatchList({ onOpen }) {
         </>
       )}
 
-      {creating && <CreateBatchDialog onClose={() => setCreating(false)} onCreated={handleCreated} />}
+      {creating && <CreateBatchDialog basePath={basePath} onClose={() => setCreating(false)} onCreated={handleCreated} />}
 
       {closing && (
         <ConfirmCloseDialog
@@ -395,6 +406,7 @@ export default function BatchList({ onOpen }) {
           busy={busyId === closing.id}
           onCancel={() => setClosing(null)}
           onConfirm={() => setStatus(closing, 'closed')}
+          nounPlural={nounPlural}
         />
       )}
     </Box>
