@@ -92,7 +92,7 @@ const formatDate = (value) => {
 }
 const display = (row, key) => {
   if (dateKeys.has(key)) return formatDate(row[key])
-  if (percentKeys.has(key)) return row[key] === '' || row[key] === null || row[key] === undefined ? '—' : `${row[key]}%`
+  if (percentKeys.has(key)) return row[key] === '' || row[key] === null || row[key] === undefined ? '—' : `${row[key]}`
   return row[key] || '—'
 }
 const calcAge = (value) => {
@@ -253,7 +253,7 @@ function Doktor() {
             </FormSection>
             <FormSection title="School and Awards">
               <Field span={6} label="School Last Attended" value={formRow.schoolLastAttended} onChange={(value) => updateField('schoolLastAttended', value)} />
-              <Field span={3} label="GWA (%)" type="number" value={formRow.gwa} onChange={(value) => updateField('gwa', value)} />
+              <Field span={3} label="GWA" type="number" value={formRow.gwa} onChange={(value) => updateField('gwa', value)} />
               <TextField
                 fullWidth
                 multiline
@@ -267,7 +267,7 @@ function Doktor() {
             </FormSection>
             <FormSection title="GWA per Year Level">
               {gwaFields.map(([key, label]) => (
-                <Field key={key} span={4} label={`${label} (%)`} type="number" value={formRow[key]} onChange={(value) => updateField(key, value)} />
+                <Field key={key} span={4} label={`${label}`} type="number" value={formRow[key]} onChange={(value) => updateField(key, value)} />
               ))}
             </FormSection>
           </>}
