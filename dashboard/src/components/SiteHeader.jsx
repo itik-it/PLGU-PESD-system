@@ -156,8 +156,6 @@ export default function SiteHeader({ compact = false }) {
             }}
           />
 
-
-
           {/* Manage users button (admin only) */}
           {user.role === 'admin' && path !== '/users' && (
             <Button

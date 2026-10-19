@@ -1,6 +1,5 @@
 -- 004_sagut_applicants.sql
 -- SAGUT Scholarship Program applicants (Provincial Scholarship of Nueva Vizcaya)
--- MySQL 8.x. Safe to run more than once (IF NOT EXISTS).
 
 CREATE DATABASE IF NOT EXISTS `lgu_sagut`
   CHARACTER SET utf8mb4
@@ -12,12 +11,12 @@ CREATE TABLE IF NOT EXISTS `applicants` (
   `id`                    INT UNSIGNED NOT NULL AUTO_INCREMENT,
 
   -- Application info
-  `application_number`    VARCHAR(50)  NOT NULL,
-  `school_year_applied`   VARCHAR(20)  NOT NULL,
   `submission_date`       DATE         NOT NULL,
 
   -- Applicant
-  `name`                  VARCHAR(150) NOT NULL,
+  `last_name`             VARCHAR(100) NOT NULL,
+  `first_name`            VARCHAR(100) NOT NULL,
+  `middle_name`           VARCHAR(100) NULL,
   `gender`                ENUM('Male','Female') NOT NULL,
   `contact_number`        VARCHAR(30)  NOT NULL,
 
@@ -54,6 +53,9 @@ CREATE TABLE IF NOT EXISTS `applicants` (
   `gwa_4th_year_1st_sem`  DECIMAL(5,2) NULL,
   `gwa_4th_year_2nd_sem`  DECIMAL(5,2) NULL,
 
+  -- Awards (below the GWA columns)
+  `awards_received`       VARCHAR(255) NULL,
+
   -- Current employment status (checkboxes)
   `is_employed`           TINYINT(1) NOT NULL DEFAULT 0,
   `is_unemployed`         TINYINT(1) NOT NULL DEFAULT 0,
@@ -67,9 +69,7 @@ CREATE TABLE IF NOT EXISTS `applicants` (
   `updated_at`            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_sagut_application_number` (`application_number`),
-  KEY `idx_sagut_name` (`name`),
-  KEY `idx_sagut_school_year` (`school_year_applied`),
+  KEY `idx_sagut_name` (`last_name`, `first_name`),
   KEY `idx_sagut_municipality` (`municipality`, `barangay`),
   KEY `idx_sagut_batch` (`batch`),
 
