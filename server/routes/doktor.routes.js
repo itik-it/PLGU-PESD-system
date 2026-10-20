@@ -18,6 +18,7 @@ const fields = {
   gwa: 'gwa', awards: 'awards', gwaFirstYear: 'gwa_first_year', gwaSecondYear: 'gwa_second_year',
   gwaThirdYear: 'gwa_third_year', gwaFourthYear: 'gwa_fourth_year', gwaInternship: 'gwa_internship',
   gwaReviewForBoard: 'gwa_review_for_board',
+  employmentStatus: 'employment_status', placeOfWork: 'place_of_work',
 }
 const select = ['id', ...Object.entries(fields).map(([key, column]) => `${column} AS ${key}`)].join(', ')
 const clean = (body) => Object.fromEntries(Object.entries(fields).map(([key, column]) => [column, body?.[key] === '' ? null : body?.[key] ?? null]))

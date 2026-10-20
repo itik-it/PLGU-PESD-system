@@ -32,6 +32,7 @@ const rowsPerPage = 10
 const today = new Date().toISOString().slice(0, 10)
 
 const civilStatusOptions = ['Single', 'Married', 'Widowed', 'Separated']
+const employmentOptions = ['Employed', 'Self-Employed', 'Unemployed']
 const gwaFields = [
   ['gwaFirstYear', '1st Year'],
   ['gwaSecondYear', '2nd Year'],
@@ -63,6 +64,8 @@ const columns = [
   { key: 'gwa', label: 'GWA' },
   { key: 'awards', label: 'Award/s Received' },
   ...gwaFields.map(([key, label]) => ({ key, label: `GWA · ${label}` })),
+  { key: 'employmentStatus', label: 'Employment Status' },
+  { key: 'placeOfWork', label: 'Place of Work' },
 ]
 const labelOf = Object.fromEntries(columns.map((column) => [column.key, column.label]))
 const dateKeys = new Set(['dateApplied', 'birthdate', 'medExamDate', 'nmatExamDate'])
@@ -138,6 +141,7 @@ function DoktorTable({ batch, onBack }) {
     ...current,
     [key]: value,
     ...(key === 'birthdate' ? { age: calcAge(value) } : {}),
+    ...(key === 'employmentStatus' && value === 'Unemployed' ? { placeOfWork: '' } : {}),
   }))
   const saveRow = async () => {
     const required = ['dateApplied', 'lastName', 'firstName', 'sex', 'birthdate', 'address', 'contactNumber']
@@ -272,6 +276,10 @@ function DoktorTable({ batch, onBack }) {
                 <Field key={key} span={4} label={`${label}`} type="number" value={formRow[key]} onChange={(value) => updateField(key, value)} />
               ))}
             </FormSection>
+            <FormSection title="Current Employment">
+              <TextField select className="sagut-span-6" label="Employment Status" value={formRow.employmentStatus ?? ''} onChange={(event) => updateField('employmentStatus', event.target.value)}>{employmentOptions.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}</TextField>
+              <Field span={6} label="Place of Work (where they are working)" disabled={!['Employed', 'Self-Employed'].includes(formRow.employmentStatus)} value={formRow.placeOfWork} onChange={(value) => updateField('placeOfWork', value)} />
+            </FormSection>
           </>}
         </DialogContent>
         <DialogActions>{error && <Typography color="error" role="alert" sx={{ mr: 'auto', pl: 1 }} variant="body2">{error}</Typography>}<Button onClick={() => { setError(''); setFormRow(null) }}>Cancel</Button><Button disabled={saving} onClick={saveRow} variant="contained">{saving ? 'Saving...' : 'Save Applicant'}</Button></DialogActions>
@@ -292,7 +300,7 @@ function DoktorTable({ batch, onBack }) {
 function FormSection({ title, children }) {
   return <Box className="gip-form-section"><Typography className="gip-form-section-heading" component="h2" variant="subtitle1">{title}</Typography><Box className="sagut-form-grid">{children}</Box></Box>
 }
-function Field({ label, value, onChange, type = 'text', required = false, span = 4 }) {
+function Field({ label, value, onChange, type = 'text', required = false, disabled = false, span = 4 }) {
   const isNumber = type === 'number'
   return (
     <TextField
@@ -301,6 +309,7 @@ function Field({ label, value, onChange, type = 'text', required = false, span =
       label={label}
       onChange={(event) => onChange(event.target.value)}
       required={required}
+      disabled={disabled}
       slotProps={{
         inputLabel: type === 'date' ? { shrink: true } : undefined,
         htmlInput: isNumber ? { min: 0, step: 'any', inputMode: 'decimal' } : {},
@@ -324,6 +333,7 @@ function DetailView({ row }) {
       <DetailSection title="Pre-Med and Examinations"><DetailFields row={row} keys={['premedCourse', 'medExamResult', 'medExamDate', 'nmatResult', 'nmatExamDate']} /></DetailSection>
       <DetailSection title="School and Awards"><DetailFields row={row} keys={['schoolLastAttended', 'gwa', 'awards']} /></DetailSection>
       <DetailSection title="GWA per Year Level"><DetailFields row={row} keys={gwaFields.map(([key]) => key)} /></DetailSection>
+      <DetailSection title="Current Employment"><DetailFields row={row} keys={['employmentStatus', 'placeOfWork']} /></DetailSection>
     </>
   )
 }

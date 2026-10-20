@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS `applicants` (
   `is_self_employed`      TINYINT(1) NOT NULL DEFAULT 0,
 
   -- Other
-  `remarks`               VARCHAR(100) NULL,
+  `remarks`               VARCHAR(100) NULL COMMENT 'Ongoing = selected, Waiting = not selected, Dropped',
   `batch`                 VARCHAR(20)  NULL,
 
   `created_at`            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -79,6 +79,12 @@ CREATE TABLE IF NOT EXISTS applicants (
 
     gwa_review_for_board DECIMAL(5,2) NULL,
 
+    /* Current employment */
+
+    employment_status VARCHAR(30) NULL,
+
+    place_of_work VARCHAR(255) NULL,
+
     /* Program status */
 
     /* Batch 1 to Batch 4 */
