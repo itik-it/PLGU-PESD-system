@@ -8,6 +8,9 @@ import ofwLogo from '../assets/ofw.png'
 import sagutLogo from '../assets/sagut.png'
 import spesLogo from '../assets/spes.png'
 import tupadLogo from '../assets/tupad.png'
+import bridgingLogo from '../assets/bridging.png'
+import jobvacancyLogo from '../assets/jobvacancy.png'
+import jobseekerLogo from '../assets/jobseeker.png'
 
 // Each page is downloaded only when the user opens it.
 const Gip = lazy(() => import('../page/gip.jsx'))
@@ -34,11 +37,11 @@ export const programGroups = ['Employment', 'Livelihood', 'Scholarships', 'OFW S
 export const programs = [
   { name: 'GIP', group: 'Employment', logo: 'GIP', image: gipLogo, path: '/gip', component: Gip },
   { name: 'SAGUT', group: 'Scholarships', logo: 'SAGUT', image: sagutLogo, path: '/sagut', component: Sagut },
-  { name: 'BRIDGING', group: 'Livelihood', logo: 'BR', path: '/bridging', component: Bridging },
+  { name: 'BRIDGING', group: 'Livelihood', logo: 'BR', image: bridgingLogo, path: '/bridging', component: Bridging },
   { name: 'DOKTOR', group: 'Scholarships', logo: 'DOK', image: doktorLogo, path: '/doktor', component: Doktor },
   { name: 'LIVELIHOOD', group: 'Livelihood', logo: 'LIV', image: livelihoodLogo, path: '/livelihood', component: Livelihood },
-  { name: 'JOBSEEKERS', group: 'Employment', logo: 'JS', path: '/jobseeker', component: Jobseekers },
-  { name: 'JOBVACANCY', group: 'Employment', logo: 'JV', path: '/jobvacancy', component: Jobvacancy },
+  { name: 'JOBSEEKERS', group: 'Employment', logo: 'JS', image: jobseekerLogo, path: '/jobseeker', component: Jobseekers },
+  { name: 'JOBVACANCY', group: 'Employment', logo: 'JV', image: jobvacancyLogo, path: '/jobvacancy', component: Jobvacancy },
   { name: 'OFW', group: 'OFW Services', logo: 'OFW', image: ofwLogo, path: '/ofw', component: Ofw },
   { name: 'SPES', group: 'Employment', logo: 'SPES', image: spesLogo, path: '/spes', component: Spes },
   { name: 'TUPAD', group: 'Employment', logo: 'TUPAD', image: tupadLogo, path: '/tupad', component: Tupad },
