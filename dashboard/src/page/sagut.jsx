@@ -72,7 +72,7 @@ const columns = [
   ...gwaFields.map(([key, label]) => ({ key, label, group: 'GWA' })),
   { key: 'awardsReceived', group: 'Awards', width: 220 },
   ...employmentFields.map(([key, label]) => ({ key, label, group: 'Current Employment Status' })),
-  { key: 'remarks', label: 'Remarks', group: 'Other', width: 140 },
+  { key: 'remarks', group: 'Other', width: 140 },
 ]
 
 // The table only shows the key columns; everything else is in the detail window.
@@ -126,7 +126,7 @@ function SagutTable({ batch, onBack }) {
   const [saving, setSaving] = useState(false)
   const isClosed = batch.status === 'closed'
   const applicantsPath = `/sagut/batches/${batch.id}/applicants`
-  const [remarkOptions, setRemarkOptions] = useState(['Ongoing', 'Waiting', 'Dropped'])
+  const [remarkOptions, setRemarkOptions] = useState(['Ongoing', 'Dropped'])
   const [newRemark, setNewRemark] = useState('')
 
   useEffect(() => {

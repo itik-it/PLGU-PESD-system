@@ -5,7 +5,7 @@ const helmet = require('helmet')
 
 const env = require('./env')
 const { authRoutes, usersRoutes, requireAuth } = require('./auth')
-const { gipPool, usersPool, guwipPool, doktorPool, trpatuPool } = require('./db')
+const { gipPool, usersPool, guwipPool, doktorPool, trpatuPool, tupadPool, ofwPool, livelihoodPool } = require('./db')
 const {
   errorHandler,
   notFoundHandler,
@@ -15,6 +15,9 @@ const sagutRoutes = require('./routes/sagut.routes')
 const guwipRoutes = require('./routes/guwip.routes')
 const doktorRoutes = require('./routes/doktor.routes')
 const trpatuRoutes = require('./routes/trpatu.routes')
+const tupadRoutes = require('./routes/tupad.routes')
+const ofwRoutes = require('./routes/ofw.routes')
+const livelihoodRoutes = require('./routes/livelihood.routes')
 
 const app = express()
 
@@ -51,6 +54,9 @@ app.get('/api/health', async (_request, response) => {
     await guwipPool.query('SELECT 1')
     await doktorPool.query('SELECT 1')
     await trpatuPool.query('SELECT 1')
+    await tupadPool.query('SELECT 1')
+    await ofwPool.query('SELECT 1')
+    await livelihoodPool.query('SELECT 1')
 
     response.json({
       status: 'ok',
@@ -59,6 +65,9 @@ app.get('/api/health', async (_request, response) => {
       guwipDatabase: 'connected',
       doktorDatabase: 'connected',
       trpatuDatabase: 'connected',
+      tupadDatabase: 'connected',
+      ofwDatabase: 'connected',
+      livelihoodDatabase: 'connected',
     })
   } catch (error) {
     console.error('Database health check failed:', error.message)
@@ -70,6 +79,9 @@ app.get('/api/health', async (_request, response) => {
       guwipDatabase: 'disconnected',
       doktorDatabase: 'disconnected',
       trpatuDatabase: 'disconnected',
+      tupadDatabase: 'disconnected',
+      ofwDatabase: 'disconnected',
+      livelihoodDatabase: 'disconnected',
     })
   }
 })
@@ -80,6 +92,9 @@ app.use('/api/sagut', requireAuth, sagutRoutes)
 app.use('/api/guwip', requireAuth, guwipRoutes)
 app.use('/api/doktor', requireAuth, doktorRoutes)
 app.use('/api/trpatu', requireAuth, trpatuRoutes)
+app.use('/api/tupad', requireAuth, tupadRoutes)
+app.use('/api/ofw', requireAuth, ofwRoutes)
+app.use('/api/livelihood', requireAuth, livelihoodRoutes)
 
 // ERRORS (must stay last)
 

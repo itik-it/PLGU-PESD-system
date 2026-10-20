@@ -43,6 +43,24 @@ const trpatuPool = mysql.createPool({
   database: env.DB_TRPATU_NAME,
 })
 
+// TUPAD database
+const tupadPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_TUPAD_NAME,
+})
+
+// OFW  databases
+const ofwPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_OFW_NAME,
+})
+
+// Livelihood databases
+const livelihoodPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_LIVELIHOOD_NAME,
+})
+
 // Login database
 const usersPool = mysql.createPool({
   ...baseConfig,
@@ -80,5 +98,8 @@ module.exports = {
   guwipPool,
   doktorPool,
   trpatuPool,
+  tupadPool,
+  ofwPool,
+  livelihoodPool,
   withTransaction,
 }
