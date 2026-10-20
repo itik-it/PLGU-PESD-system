@@ -179,6 +179,10 @@ const filteredRows = useMemo(() => {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
+            <Button className="gip-home-button" href="/">
+            <span aria-hidden="true">←</span>
+            Back to Dashboard
+          </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
           <Typography className="gip-page-title" component="h1" variant="h5">Tupad</Typography>
           <Typography className="gip-page-hint" component="p" variant="body2">Manage, search, and review Tupad applicant information.</Typography>
