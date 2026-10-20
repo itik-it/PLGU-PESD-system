@@ -28,6 +28,8 @@ import {
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import BatchList from '../components/BatchList.jsx'
+import { useDebounce } from '../utils/useDebounce.js'
+
 
 const rowsPerPage = 10
 const today = new Date().toISOString().slice(0, 10)
@@ -68,9 +70,9 @@ const columns = [
   { key: 'course', label: 'Course', group: 'Education / Admission', width: 180 },
   { key: 'placeOfStudy', label: 'Place of Study', group: 'Education / Admission', width: 130 },
   ...gwaFields.map(([key, label]) => ({ key, label, group: 'GWA' })),
-  { key: 'awardsReceived', label: 'Awards Received', group: 'Awards', width: 220 },
+  { key: 'awardsReceived', group: 'Awards', width: 220 },
   ...employmentFields.map(([key, label]) => ({ key, label, group: 'Current Employment Status' })),
-  { key: 'remarks', label: 'Remarks', group: 'Other', width: 140 },
+  { key: 'remarks', group: 'Other', width: 140 },
 ]
 
 // The table only shows the key columns; everything else is in the detail window.
@@ -114,6 +116,7 @@ function SagutTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [page, setPage] = useState(0)
   const [formRow, setFormRow] = useState(null)
   const [selectedRow, setSelectedRow] = useState(null)
@@ -130,10 +133,10 @@ function SagutTable({ batch, onBack }) {
     api.get(applicantsPath).then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
   }, [applicantsPath])
 
-  const filteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase()
+const filteredRows = useMemo(() => {
+  const query = debouncedSearch.trim().toLowerCase()
     return query ? rows.filter((row) => columns.some(({ key }) => String(row[key]).toLowerCase().includes(query))) : rows
-  }, [rows, search])
+  }, [rows, debouncedSearch])
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
   const visiblePage = Math.min(page, pageCount - 1)
   const pagedRows = filteredRows.slice(visiblePage * rowsPerPage, (visiblePage + 1) * rowsPerPage)
@@ -277,7 +280,7 @@ function SagutTable({ batch, onBack }) {
             </SagutSection>
             <SagutSection title="Current Employment Status"><CheckFields fields={employmentFields} row={formRow} updateField={updateField} /></SagutSection>
             <SagutSection title="Remarks">
-              <FormControl className="sagut-span-5"><FormLabel>Remarks</FormLabel><Box className="sagut-option-list">{remarkOptions.map((option) => <Button key={option} variant={formRow.remarks === option ? 'contained' : 'outlined'} onClick={() => updateField('remarks', option)}>{option}</Button>)}</Box></FormControl>
+              <FormControl className="sagut-span-5"><Box className="sagut-option-list">{remarkOptions.map((option) => <Button key={option} variant={formRow.remarks === option ? 'contained' : 'outlined'} onClick={() => updateField('remarks', option)}>{option}</Button>)}</Box></FormControl>
               <Box className="sagut-add-remark sagut-span-4"><TextField label="New remark option" size="small" value={newRemark} onChange={(event) => setNewRemark(event.target.value)} /><Button onClick={() => { if (newRemark.trim()) { setRemarkOptions((current) => [...new Set([...current, newRemark.trim()])]); updateField('remarks', newRemark.trim()); setNewRemark('') } }}>Add option</Button></Box>
             </SagutSection>
           </>}

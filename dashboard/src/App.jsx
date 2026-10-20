@@ -4,8 +4,10 @@ import SiteHeader from './components/SiteHeader.jsx'
 import { routes } from './config/routes.js'
 import Home from './page/home.jsx'
 import { useRouter } from './router.jsx'
+import { Suspense } from 'react'
 // Still needed: gip.jsx uses the gip-* classes in this file until it is moved to MUI.
 import './App.css'
+
 
 function App() {
   const { user, loading } = useAuth()
@@ -46,8 +48,16 @@ function App() {
           <Alert severity="warning" sx={{ m: 4 }}>
             Administrator access is required to open this page.
           </Alert>
-        ) : (
-          <Page />
+                ) : (
+          <Suspense
+            fallback={
+              <Box sx={{ display: 'grid', placeItems: 'center', height: '100%', minHeight: 240 }}>
+                <CircularProgress color="secondary" />
+              </Box>
+            }
+          >
+            <Page />
+          </Suspense>
         )}
       </Box>
     </Box>

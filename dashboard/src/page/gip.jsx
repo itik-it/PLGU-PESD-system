@@ -28,6 +28,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import BatchList from '../components/BatchList.jsx';
 import ImportDialog from '../components/ImportDialog.jsx';
 import { saveFile } from '../utils/saveFile.js';
+import { useDebounce } from '../utils/useDebounce.js'
 
 const columns = [
   { key: 'lastName', label: 'Last Name', group: 'beneficiary' },
@@ -246,6 +247,7 @@ function GipTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [selectedRow, setSelectedRow] = useState(null)
   const [formRow, setFormRow] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -293,12 +295,12 @@ function GipTable({ batch, onBack }) {
     }
 
   const filteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase()
+  const query = debouncedSearch.trim().toLowerCase()
     if (!query) return rows
     return rows.filter((row) => columns.some((column) => (
       String(row[column.key]).toLowerCase().includes(query)
     )))
-  }, [rows, search])
+  }, [rows, debouncedSearch])
 
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
   const visiblePage = Math.min(page, pageCount - 1)

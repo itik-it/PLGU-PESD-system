@@ -28,6 +28,7 @@ import {
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import BatchList from '../components/BatchList.jsx'
+import { useDebounce } from '../utils/useDebounce.js'
 
 const rowsPerPage = 10
 const today = new Date().toISOString().slice(0, 10)
@@ -73,7 +74,7 @@ const columns = [
   { key: 'position', label: 'Position' },
   { key: 'employmentType', label: 'Employment Status' },
   { key: 'monthlyIncome', label: 'Monthly Income' },
-  { key: 'remarks', label: 'Remarks' },
+  { key: 'remarks'},
 ]
 const labelOf = Object.fromEntries(columns.map((column) => [column.key, column.label]))
 
@@ -146,6 +147,7 @@ function GuwipTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [page, setPage] = useState(0)
   const [formRow, setFormRow] = useState(null)
   const [selectedRow, setSelectedRow] = useState(null)
@@ -160,8 +162,8 @@ function GuwipTable({ batch, onBack }) {
     api.get(applicantsPath).then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
   }, [applicantsPath])
 
-  const filteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase()
+const filteredRows = useMemo(() => {
+  const query = debouncedSearch.trim().toLowerCase()
     if (!query) return rows
     return rows.filter((row) => {
       const text = [
@@ -171,7 +173,7 @@ function GuwipTable({ batch, onBack }) {
       ]
       return text.some((value) => String(value ?? '').toLowerCase().includes(query))
     })
-  }, [rows, search])
+  }, [rows, debouncedSearch])
 
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
   const visiblePage = Math.min(page, pageCount - 1)
@@ -335,7 +337,7 @@ function GuwipTable({ batch, onBack }) {
               <Field span={4} label="Monthly Income" type="number" adornment="Php" value={formRow.monthlyIncome} onChange={(value) => updateField('monthlyIncome', value)} />
             </FormSection>
             <FormSection title="Remarks">
-              <FormControl className="sagut-span-12"><FormLabel>Remarks</FormLabel><Box className="sagut-option-list">{remarkOptions.map((option) => <Button key={option} variant={formRow.remarks === option ? 'contained' : 'outlined'} onClick={() => updateField('remarks', formRow.remarks === option ? '' : option)}>{option}</Button>)}</Box></FormControl>
+              <FormControl className="sagut-span-12"><Box className="sagut-option-list">{remarkOptions.map((option) => <Button key={option} variant={formRow.remarks === option ? 'contained' : 'outlined'} onClick={() => updateField('remarks', formRow.remarks === option ? '' : option)}>{option}</Button>)}</Box></FormControl>
             </FormSection>
           </>}
         </DialogContent>

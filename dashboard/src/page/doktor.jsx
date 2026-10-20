@@ -26,6 +26,7 @@ import {
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import BatchList from '../components/BatchList.jsx'
+import { useDebounce } from '../utils/useDebounce.js'
 
 const rowsPerPage = 10
 const today = new Date().toISOString().slice(0, 10)
@@ -109,6 +110,7 @@ function DoktorTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [page, setPage] = useState(0)
   const [formRow, setFormRow] = useState(null)
   const [selectedRow, setSelectedRow] = useState(null)
@@ -124,9 +126,9 @@ function DoktorTable({ batch, onBack }) {
   }, [applicantsPath])
 
   const filteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase()
+  const query = debouncedSearch.trim().toLowerCase()
     return query ? rows.filter((row) => columns.some(({ key }) => String(row[key] ?? '').toLowerCase().includes(query))) : rows
-  }, [rows, search])
+ }, [rows, debouncedSearch])
 
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
   const visiblePage = Math.min(page, pageCount - 1)

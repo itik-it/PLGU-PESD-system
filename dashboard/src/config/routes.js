@@ -1,16 +1,6 @@
 // Single list of everything the app can open.
-// To add a program: import its page, add one line to `programs`.
-import Gip from '../page/gip.jsx'
-import Sagut from '../page/sagut.jsx'
-import Bridging from '../page/bridging.jsx'
-import Doktor from '../page/doktor.jsx'
-import Livelihood from '../page/livelihood.jsx'
-import Jobseekers from '../page/jobseeker.jsx'
-import Jobvacancy from '../page/jobvacancy.jsx'
-import Ofw from '../page/ofw.jsx'
-import Spes from '../page/spes.jsx'
-import Tupad from '../page/tupad.jsx'
-import Users from '../page/users.jsx'
+// To add a program: lazy-import its page, add one line to `programs`.
+import { lazy } from 'react'
 import gipLogo from '../assets/gip.png'
 import doktorLogo from '../assets/doktor.png'
 import livelihoodLogo from '../assets/livelihood.png'
@@ -18,8 +8,23 @@ import ofwLogo from '../assets/ofw.png'
 import sagutLogo from '../assets/sagut.png'
 import spesLogo from '../assets/spes.png'
 import tupadLogo from '../assets/tupad.png'
-import Guwip from '../page/guwip.jsx'
-import TrPatu from '../page/trpatu.jsx'
+
+// Each page is downloaded only when the user opens it.
+const Gip = lazy(() => import('../page/gip.jsx'))
+const Sagut = lazy(() => import('../page/sagut.jsx'))
+const Bridging = lazy(() => import('../page/bridging.jsx'))
+const Doktor = lazy(() => import('../page/doktor.jsx'))
+const Livelihood = lazy(() => import('../page/livelihood.jsx'))
+const Jobseekers = lazy(() => import('../page/jobseeker.jsx'))
+const Jobvacancy = lazy(() => import('../page/jobvacancy.jsx'))
+const Ofw = lazy(() => import('../page/ofw.jsx'))
+const Spes = lazy(() => import('../page/spes.jsx'))
+const Tupad = lazy(() => import('../page/tupad.jsx'))
+const Users = lazy(() => import('../page/users.jsx'))
+const Guwip = lazy(() => import('../page/guwip.jsx'))
+const TrPatu = lazy(() => import('../page/trpatu.jsx'))
+
+// ...the rest of the file (programGroups, programs, routes) stays exactly the same
 
 // Section headings on the home page, in the order they appear.
 // Each program below picks one with its `group` field.
