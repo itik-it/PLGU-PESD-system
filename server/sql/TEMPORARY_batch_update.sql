@@ -88,7 +88,7 @@ GROUP BY b.id;
    2. LIVELIHOOD
    ============================================================ */
 
-USE lgu_livelihood;
+USE lgu_gip;
 
 CREATE TABLE IF NOT EXISTS batches (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -104,11 +104,11 @@ CREATE TABLE IF NOT EXISTS batches (
 );
 
 INSERT IGNORE INTO batches (batch_year, batch_no, name)
-VALUES (2026, 1, 'LIVELIHOOD 2026 - Batch 1');
+VALUES (2026, 1, 'DILP 2026 - Batch 1');
 
 SET @has_col := (
     SELECT COUNT(*) FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = 'lgu_livelihood'
+    WHERE TABLE_SCHEMA = 'lgu_gip'
       AND TABLE_NAME = 'applicants'
       AND COLUMN_NAME = 'batch_id'
 );
@@ -125,7 +125,7 @@ WHERE id > 0 AND batch_id IS NULL;
 
 SET @has_fk := (
     SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
-    WHERE CONSTRAINT_SCHEMA = 'lgu_livelihood'
+    WHERE CONSTRAINT_SCHEMA = 'lgu_dilp'
       AND TABLE_NAME = 'applicants'
       AND CONSTRAINT_NAME = 'fk_applicants_batch'
       AND CONSTRAINT_TYPE = 'FOREIGN KEY'

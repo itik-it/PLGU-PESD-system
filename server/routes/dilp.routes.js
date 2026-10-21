@@ -1,5 +1,4 @@
 // Mounted at /api/dilp (requireAuth is applied in app.js)
-// Batches live at /api/dilp/batches, applicants at /api/dilp/batches/:batchId/applicants
 const express = require('express')
 const { z } = require('zod')
 
@@ -37,7 +36,6 @@ const clean = (body) => {
   }
   return data
 }
-
 // Applicants router: mounted by createBatchesRouter under /:batchId/applicants
 const applicants = express.Router({ mergeParams: true })
 const batchIdOf = (request) => parseId(request.params.batchId, 'Batch ID')

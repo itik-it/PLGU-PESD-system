@@ -281,7 +281,7 @@ GROUP BY b.id;
    All existing rows go into "LIVELIHOOD 2026 - Batch 1".
    ============================================================ */
 
-USE lgu_livelihood;
+USE lgu_gip;
 
 CREATE TABLE IF NOT EXISTS batches (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -297,22 +297,44 @@ CREATE TABLE IF NOT EXISTS batches (
 );
 
 INSERT IGNORE INTO batches (batch_year, batch_no, name)
-VALUES (2026, 1, 'LIVELIHOOD 2026 - Batch 1');
+VALUES (2026, 1, 'DILP 2026 - Batch 1');
 
-ALTER TABLE applicants
-    ADD COLUMN batch_id INT UNSIGNED NULL AFTER id;
+SET @has_col := (
+    SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = 'lgu_gip'
+      AND TABLE_NAME = 'applicants'
+      AND COLUMN_NAME = 'batch_id'
+);
+SET @sql := IF(@has_col = 0,
+    'ALTER TABLE applicants ADD COLUMN batch_id INT UNSIGNED NULL AFTER id',
+    'SELECT ''batch_id already exists'' AS info');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 UPDATE applicants
 SET batch_id = (SELECT id FROM batches WHERE batch_year = 2026 AND batch_no = 1)
 WHERE id > 0 AND batch_id IS NULL;
 
-ALTER TABLE applicants
-    MODIFY batch_id INT UNSIGNED NOT NULL,
-    ADD INDEX idx_applicants_batch_id (batch_id),
-    ADD CONSTRAINT fk_applicants_batch
-        FOREIGN KEY (batch_id) REFERENCES batches(id)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE;
+SET @has_fk := (
+    SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = 'lgu_dilp'
+      AND TABLE_NAME = 'applicants'
+      AND CONSTRAINT_NAME = 'fk_applicants_batch'
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+SET @sql := IF(@has_fk = 0,
+    'ALTER TABLE applicants
+        MODIFY batch_id INT UNSIGNED NOT NULL,
+        ADD INDEX idx_applicants_batch_id (batch_id),
+        ADD CONSTRAINT fk_applicants_batch
+            FOREIGN KEY (batch_id) REFERENCES batches(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE',
+    'SELECT ''batch foreign key already exists'' AS info');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 SELECT b.name, COUNT(a.id) AS applicants
 FROM batches b LEFT JOIN applicants a ON a.batch_id = b.id
