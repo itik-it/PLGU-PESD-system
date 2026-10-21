@@ -31,7 +31,11 @@ import BatchList from '../components/BatchList.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
 
 const rowsPerPage = 10
+<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
 
+=======
+const applicantsPath = '/dilp/applicants'
+>>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
 const today = new Date().toISOString().slice(0, 10)
 
 const projectTypeOptions = ['Individual', 'Group']
@@ -133,7 +137,11 @@ const display = (row, key) => {
   return row[key] === '' || row[key] === null || row[key] === undefined ? '—' : row[key]
 }
 
+<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
 function LivelihoodTable({ batch, onBack }) {
+=======
+function Dilp() {
+>>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -209,8 +217,13 @@ function LivelihoodTable({ batch, onBack }) {
             All batches
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
+<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
           <Typography className="gip-page-title" component="h1" variant="h5">DOLE Integrated Livelihood Program · {batch.name}</Typography>
           <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review Livelihood program applicants and beneficiaries.'}</Typography>
+=======
+          <Typography className="gip-page-title" component="h1" variant="h5">DOLE Integrated Livelihood Program (DILP)</Typography>
+          <Typography className="gip-page-hint" component="p" variant="body2">Manage, search, and review DILP applicants and beneficiaries.</Typography>
+>>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
         </Box>
         <Box className="gip-record-count"><strong>{rows.length}</strong><span>applicants</span></Box>
       </Box>
@@ -219,12 +232,17 @@ function LivelihoodTable({ batch, onBack }) {
           <Typography className="gip-section-title" component="h2" variant="h6">Applicant List</Typography>
           {error && !formRow && <Typography color="error" role="alert" variant="body2">{error}</Typography>}
           <Box className="gip-toolbar-actions">
+<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
             <TextField aria-label="Search Livelihood applicants" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search applicants..." size="small" value={search} />
             <Button className="gip-add-button" disabled={isClosed} variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
+=======
+            <TextField aria-label="Search DILP applicants" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search applicants..." size="small" value={search} />
+            <Button className="gip-add-button" variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
+>>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
           </Box>
         </Box>
         <TableContainer className="gip-table-container sagut-table-container">
-          <Table stickyHeader aria-label="Livelihood applicants" className="gip-table sagut-table" size="small">
+          <Table stickyHeader aria-label="DILP applicants" className="gip-table sagut-table" size="small">
             <TableHead>
               <TableRow>
                 {tableColumns.map((column) => <TableCell className={`gip-column-header ${hideOnNarrow.has(column.key) ? 'sagut-hide-narrow' : ''}`} key={column.key}>{column.label}</TableCell>)}
@@ -252,7 +270,7 @@ function LivelihoodTable({ batch, onBack }) {
       </Paper>
 
       <Dialog fullWidth maxWidth="lg" onClose={() => setFormRow(null)} open={Boolean(formRow)}>
-        <DialogTitle>{formRow?.id === null ? 'Add New Livelihood Applicant' : 'Edit Livelihood Applicant'}</DialogTitle>
+        <DialogTitle>{formRow?.id === null ? 'Add New DILP Applicant' : 'Edit DILP Applicant'}</DialogTitle>
         <DialogContent dividers>
           {formRow && <>
             <FormSection title="Project">
@@ -400,6 +418,7 @@ function DetailView({ row }) {
   )
 }
 
+<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
 // Pick a batch first, then show that batch's table.
 function Livelihood() {
   const [batch, setBatch] = useState(null)
@@ -412,3 +431,6 @@ function Livelihood() {
 }
 
 export default Livelihood
+=======
+export default Dilp
+>>>>>>> Stashed changes:dashboard/src/page/dilp.jsx

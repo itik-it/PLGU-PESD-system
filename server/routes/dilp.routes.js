@@ -1,10 +1,9 @@
-// Mounted at /api/livelihood (requireAuth is applied in app.js)
-//   /batches                         list / create / open-close
-//   /batches/:batchId/applicants     applicants of ONE batch
+// Mounted at /api/dilp (requireAuth is applied in app.js)
+// Batches live at /api/dilp/batches, applicants at /api/dilp/batches/:batchId/applicants
 const express = require('express')
 const { z } = require('zod')
 
-const { livelihoodPool } = require('../db')
+const { dilpPool } = require('../db')
 const { requireAdmin } = require('../auth/auth.middleware')
 const { HttpError } = require('../errors')
 const { asyncHandler } = require('../utils/async-handler')
@@ -39,47 +38,51 @@ const clean = (body) => {
   return data
 }
 
+// Applicants router: mounted by createBatchesRouter under /:batchId/applicants
+const applicants = express.Router({ mergeParams: true })
 const batchIdOf = (request) => parseId(request.params.batchId, 'Batch ID')
-
+// Loads the batch (404 if missing); writes are blocked when the batch is closed.
+const loadBatch = async (batchId, { write = false } = {}) => {
+  const batch = await getBatchOrFail(dilpPool, batchId)
+  if (write && batch && batch.status === 'closed') throw new HttpError(409, 'This batch is closed. Records are read-only.')
+  return batch
+}
 const readOne = async (id, batchId) => {
-  const [rows] = await livelihoodPool.query(`SELECT id, ${select} FROM applicants WHERE id = ? AND batch_id = ?`, [id, batchId])
-  if (!rows.length) throw new HttpError(404, 'Livelihood applicant not found in this batch.')
+  const [rows] = await dilpPool.query(`SELECT id, ${select} FROM applicants WHERE id = ? AND batch_id = ?`, [id, batchId])
+  if (!rows.length) throw new HttpError(404, 'DILP applicant not found.')
   return rows[0]
 }
 
-// mergeParams lets this router see :batchId from the parent route.
-const applicants = express.Router({ mergeParams: true })
-
 applicants.get('/', asyncHandler(async (request, response) => {
   const batchId = batchIdOf(request)
-  await getBatchOrFail(livelihoodPool, batchId)
-  const [rows] = await livelihoodPool.query(`SELECT id, ${select} FROM applicants WHERE batch_id = ? ORDER BY id`, [batchId])
+  await loadBatch(batchId)
+  const [rows] = await dilpPool.query(`SELECT id, ${select} FROM applicants WHERE batch_id = ? ORDER BY id`, [batchId])
   response.json(rows)
 }))
 applicants.post('/', asyncHandler(async (request, response) => {
   const batchId = batchIdOf(request)
-  await getBatchOrFail(livelihoodPool, batchId, { requireOpen: true })
-  const [result] = await livelihoodPool.query('INSERT INTO applicants SET ?', { ...clean(request.body), batch_id: batchId })
+  await loadBatch(batchId, { write: true })
+  const [result] = await dilpPool.query('INSERT INTO applicants SET ?', { ...clean(request.body), batch_id: batchId })
   response.status(201).json({ id: result.insertId })
 }))
 applicants.put('/:id', asyncHandler(async (request, response) => {
   const batchId = batchIdOf(request)
+  await loadBatch(batchId, { write: true })
   const id = parseId(request.params.id, 'Applicant ID')
-  await getBatchOrFail(livelihoodPool, batchId, { requireOpen: true })
   await readOne(id, batchId)
-  await livelihoodPool.query('UPDATE applicants SET ? WHERE id = ? AND batch_id = ?', [clean(request.body), id, batchId])
+  await dilpPool.query('UPDATE applicants SET ? WHERE id = ? AND batch_id = ?', [clean(request.body), id, batchId])
   response.json(await readOne(id, batchId))
 }))
 applicants.delete('/:id', requireAdmin, asyncHandler(async (request, response) => {
   const batchId = batchIdOf(request)
+  await loadBatch(batchId, { write: true })
   const id = parseId(request.params.id, 'Applicant ID')
-  await getBatchOrFail(livelihoodPool, batchId, { requireOpen: true })
-  const [result] = await livelihoodPool.query('DELETE FROM applicants WHERE id = ? AND batch_id = ?', [id, batchId])
-  if (!result.affectedRows) throw new HttpError(404, 'Livelihood applicant not found in this batch.')
+  const [result] = await dilpPool.query('DELETE FROM applicants WHERE id = ? AND batch_id = ?', [id, batchId])
+  if (!result.affectedRows) throw new HttpError(404, 'DILP applicant not found.')
   response.status(204).end()
 }))
 
 const router = express.Router()
-router.use('/batches', createBatchesRouter({ pool: livelihoodPool, program: 'LIVELIHOOD', applicantsRouter: applicants }))
+router.use('/batches', createBatchesRouter({ pool: dilpPool, program: 'DILP', applicantsRouter: applicants }))
 
 module.exports = router

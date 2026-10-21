@@ -1,13 +1,13 @@
 /* ============================================================
-   LIVELIHOOD DATABASE SCHEMA
-   LGU/PESO Livelihood Program
+   DILP DATABASE SCHEMA
+   LGU/PESO Dilp Program
    ============================================================ */
 
-CREATE DATABASE IF NOT EXISTS lgu_livelihood
+CREATE DATABASE IF NOT EXISTS lgu_dilp
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_0900_ai_ci;
 
-USE lgu_livelihood;
+USE lgu_dilp;
 
 
 /* ============================================================

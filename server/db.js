@@ -55,10 +55,10 @@ const ofwPool = mysql.createPool({
   database: env.DB_OFW_NAME,
 })
 
-// Livelihood databases
-const livelihoodPool = mysql.createPool({
+// DILP databases
+const dilpPool = mysql.createPool({
   ...baseConfig,
-  database: env.DB_LIVELIHOOD_NAME,
+  database: env.DB_DILP_NAME,
 })
 
 const jobseekerPool = mysql.createPool({
@@ -120,7 +120,7 @@ module.exports = {
   trpatuPool,
   tupadPool,
   ofwPool,
-  livelihoodPool,
+  dilpPool,
   jobseekerPool,
   spesPool,
   bridgingPool,

@@ -27,7 +27,7 @@ const envSchema = z
     DB_TRPATU_NAME: z.string().min(1).default('lgu_trpatu'),
     DB_TUPAD_NAME: z.string().min(1).default('lgu_tupad'),
     DB_OFW_NAME: z.string().min(1).default('lgu_ofw'),
-    DB_LIVELIHOOD_NAME: z.string().min(1).default('lgu_livelihood'),
+    DB_DILP_NAME: z.string().min(1).default('lgu_dilp'),
     DB_JOBSEEKER_NAME: z.string().min(1).default('lgu_jobseeker'),
     DB_SPES_NAME: z.string().min(1).default('lgu_spes'),
     DB_BRIDGING_NAME: z.string().min(1).default('lgu_bridging'),
