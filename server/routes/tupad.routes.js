@@ -1,4 +1,6 @@
 // Mounted at /api/tupad (requireAuth is applied in app.js)
+//   /batches                         list / create / open-close
+//   /batches/:batchId/applicants     applicants of ONE batch
 const express = require('express')
 const { z } = require('zod')
 
@@ -7,6 +9,7 @@ const { requireAdmin } = require('../auth/auth.middleware')
 const { HttpError } = require('../errors')
 const { asyncHandler } = require('../utils/async-handler')
 const { parseId } = require('../utils/parse-id')
+const { createBatchesRouter, getBatchOrFail } = require('../utils/program-batches')
 
 const fields = {
   lastName: 'last_name', firstName: 'first_name', middleName: 'middle_name', nameExtension: 'name_extension',
@@ -42,36 +45,50 @@ const clean = (body) => {
   return data
 }
 
-const readOne = async (id) => {
-  const [rows] = await tupadPool.query(`SELECT id, ${select} FROM applicants WHERE id = ?`, [id])
-  if (!rows.length) throw new HttpError(404, 'TUPAD applicant not found.')
+const batchIdOf = (request) => parseId(request.params.batchId, 'Batch ID')
+
+const readOne = async (id, batchId) => {
+  const [rows] = await tupadPool.query(`SELECT id, ${select} FROM applicants WHERE id = ? AND batch_id = ?`, [id, batchId])
+  if (!rows.length) throw new HttpError(404, 'TUPAD applicant not found in this batch.')
   return rows[0]
 }
 
-const router = express.Router()
+// mergeParams lets this router see :batchId from the parent route.
+const applicants = express.Router({ mergeParams: true })
 
-router.get('/applicants', asyncHandler(async (_request, response) => {
-  const [rows] = await tupadPool.query(`SELECT id, ${select} FROM applicants ORDER BY id`)
+applicants.get('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(tupadPool, batchId)
+  const [rows] = await tupadPool.query(`SELECT id, ${select} FROM applicants WHERE batch_id = ? ORDER BY id`, [batchId])
   response.json(rows)
 }))
 
-router.post('/applicants', asyncHandler(async (request, response) => {
-  const [result] = await tupadPool.query('INSERT INTO applicants SET ?', clean(request.body))
+applicants.post('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(tupadPool, batchId, { requireOpen: true })
+  const [result] = await tupadPool.query('INSERT INTO applicants SET ?', { ...clean(request.body), batch_id: batchId })
   response.status(201).json({ id: result.insertId })
 }))
 
-router.put('/applicants/:id', asyncHandler(async (request, response) => {
+applicants.put('/:id', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
   const id = parseId(request.params.id, 'Applicant ID')
-  await readOne(id)
-  await tupadPool.query('UPDATE applicants SET ? WHERE id = ?', [clean(request.body), id])
-  response.json(await readOne(id))
+  await getBatchOrFail(tupadPool, batchId, { requireOpen: true })
+  await readOne(id, batchId)
+  await tupadPool.query('UPDATE applicants SET ? WHERE id = ? AND batch_id = ?', [clean(request.body), id, batchId])
+  response.json(await readOne(id, batchId))
 }))
 
-router.delete('/applicants/:id', requireAdmin, asyncHandler(async (request, response) => {
+applicants.delete('/:id', requireAdmin, asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
   const id = parseId(request.params.id, 'Applicant ID')
-  const [result] = await tupadPool.query('DELETE FROM applicants WHERE id = ?', [id])
-  if (!result.affectedRows) throw new HttpError(404, 'TUPAD applicant not found.')
+  await getBatchOrFail(tupadPool, batchId, { requireOpen: true })
+  const [result] = await tupadPool.query('DELETE FROM applicants WHERE id = ? AND batch_id = ?', [id, batchId])
+  if (!result.affectedRows) throw new HttpError(404, 'TUPAD applicant not found in this batch.')
   response.status(204).end()
 }))
+
+const router = express.Router()
+router.use('/batches', createBatchesRouter({ pool: tupadPool, program: 'TUPAD', applicantsRouter: applicants }))
 
 module.exports = router

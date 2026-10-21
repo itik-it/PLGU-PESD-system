@@ -26,10 +26,11 @@ import {
 } from '@mui/material'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
+import BatchList from '../components/BatchList.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
 
-// Server routes: GET and POST /tupad/applicants, PUT and DELETE /tupad/applicants/:id
-const applicantsPath = '/tupad/applicants'
+// Server routes: GET and POST /tupad/batches/:batchId/applicants, PUT and DELETE .../applicants/:id
+
 
 const rowsPerPage = 10
 const today = new Date().toISOString().slice(0, 10)
@@ -109,7 +110,7 @@ const display = (row, key) => {
   return row[key] || '—'
 }
 
-function Tupad() {
+function TupadTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -121,10 +122,12 @@ function Tupad() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const isClosed = batch.status === 'closed'
+  const applicantsPath = `/tupad/batches/${batch.id}/applicants`
 
   useEffect(() => {
     api.get(applicantsPath).then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
-  }, [])
+  }, [applicantsPath])
 
 const filteredRows = useMemo(() => {
   const query = debouncedSearch.trim().toLowerCase()
@@ -179,13 +182,13 @@ const filteredRows = useMemo(() => {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-            <Button className="gip-home-button" href="/">
+            <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
-            Back to Dashboard
+            All batches
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
-          <Typography className="gip-page-title" component="h1" variant="h5">Tupad</Typography>
-          <Typography className="gip-page-hint" component="p" variant="body2">Manage, search, and review Tupad applicant information.</Typography>
+          <Typography className="gip-page-title" component="h1" variant="h5">Tupad · {batch.name}</Typography>
+          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review Tupad applicant information.'}</Typography>
         </Box>
         <Box className="gip-record-count"><strong>{rows.length}</strong><span>applicants</span></Box>
       </Box>
@@ -195,7 +198,7 @@ const filteredRows = useMemo(() => {
           {error && !formRow && <Typography color="error" role="alert" variant="body2">{error}</Typography>}
           <Box className="gip-toolbar-actions">
             <TextField aria-label="Search Tupad applicants" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search applicants..." size="small" value={search} />
-            <Button className="gip-add-button" variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
+            <Button className="gip-add-button" disabled={isClosed} variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
           </Box>
         </Box>
         <TableContainer className="gip-table-container sagut-table-container">
@@ -212,8 +215,8 @@ const filteredRows = useMemo(() => {
                   : pagedRows.map((row) => <TableRow className="gip-data-row" hover key={row.id} onClick={() => setSelectedRow(row)}>
                     {tableColumns.map((column) => <TableCell className={`${column.key === 'lastName' ? 'sagut-name-cell' : ''} ${hideOnNarrow.has(column.key) ? 'sagut-hide-narrow' : ''}`} key={column.key}>{display(row, column.key)}</TableCell>)}
                     <TableCell className="gip-actions-cell" onClick={(event) => event.stopPropagation()}>
-                      <Button size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
-                      {user?.role === 'admin' && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
+                      <Button disabled={isClosed} size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
+                      {user?.role === 'admin' && !isClosed && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
                     </TableCell>
                   </TableRow>)}
             </TableBody>
@@ -264,7 +267,7 @@ const filteredRows = useMemo(() => {
         <DialogTitle>{selectedRow && fullName(selectedRow)}</DialogTitle>
         <DialogContent dividers>{selectedRow && <DetailView row={selectedRow} />}</DialogContent>
         <DialogActions>
-          <Button onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
+          <Button disabled={isClosed} onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
           <Button onClick={() => setSelectedRow(null)} variant="contained">Close</Button>
         </DialogActions>
       </Dialog>
@@ -312,5 +315,16 @@ function DetailView({ row }) {
   )
 }
 
+
+// Pick a batch first, then show that batch's table.
+function Tupad() {
+  const [batch, setBatch] = useState(null)
+
+  if (!batch) {
+    return <BatchList basePath="/tupad/batches" title="Tupad Batches" noun="applicant" nounPlural="applicants" onOpen={setBatch} />
+  }
+
+  return <TupadTable key={batch.id} batch={batch} onBack={() => setBatch(null)} />
+}
 
 export default Tupad

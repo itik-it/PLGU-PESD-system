@@ -27,10 +27,11 @@ import {
 } from '@mui/material'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
+import BatchList from '../components/BatchList.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
 
 const rowsPerPage = 10
-const applicantsPath = '/ofw/applicants'
+
 const today = new Date().toISOString().slice(0, 10)
 
 const ofwStatusOptions = [
@@ -146,7 +147,7 @@ const display = (row, key) => {
   return row[key] === '' || row[key] === null || row[key] === undefined ? '—' : row[key]
 }
 
-function Ofw() {
+function OfwTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -158,10 +159,12 @@ function Ofw() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const isClosed = batch.status === 'closed'
+  const applicantsPath = `/ofw/batches/${batch.id}/applicants`
 
   useEffect(() => {
     api.get(applicantsPath).then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
-  }, [])
+  }, [applicantsPath])
 
   const filteredRows = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase()
@@ -216,13 +219,13 @@ function Ofw() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-            <Button className="gip-home-button" href="/">
+            <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
-            Back to Dashboard
+            All batches
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
-          <Typography className="gip-page-title" component="h1" variant="h5">Nueva Vizcaya OFW Welfare Center Registration Form</Typography>
-          <Typography className="gip-page-hint" component="p" variant="body2">Manage, search, and review Overseas Filipino Workers (OFW) records.</Typography>
+          <Typography className="gip-page-title" component="h1" variant="h5">Nueva Vizcaya OFW Welfare Center Registration Form · {batch.name}</Typography>
+          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review Overseas Filipino Workers (OFW) records.'}</Typography>
         </Box>
         <Box className="gip-record-count"><strong>{rows.length}</strong><span>OFWs</span></Box>
       </Box>
@@ -232,7 +235,7 @@ function Ofw() {
           {error && !formRow && <Typography color="error" role="alert" variant="body2">{error}</Typography>}
           <Box className="gip-toolbar-actions">
             <TextField aria-label="Search OFW records" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search OFWs..." size="small" value={search} />
-            <Button className="gip-add-button" variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add OFW</Button>
+            <Button className="gip-add-button" disabled={isClosed} variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add OFW</Button>
           </Box>
         </Box>
         <TableContainer className="gip-table-container sagut-table-container">
@@ -249,8 +252,8 @@ function Ofw() {
                   : pagedRows.map((row) => <TableRow className="gip-data-row" hover key={row.id} onClick={() => setSelectedRow(row)}>
                     {tableColumns.map((column) => <TableCell className={`${column.key === 'lastName' ? 'sagut-name-cell' : ''} ${hideOnNarrow.has(column.key) ? 'sagut-hide-narrow' : ''}`} key={column.key}>{display(row, column.key)}</TableCell>)}
                     <TableCell className="gip-actions-cell" onClick={(event) => event.stopPropagation()}>
-                      <Button size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
-                      {user?.role === 'admin' && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
+                      <Button disabled={isClosed} size="small" onClick={() => { setError(''); setFormRow({ ...row }) }}>Edit</Button>
+                      {user?.role === 'admin' && !isClosed && <IconButton aria-label={`Delete ${fullName(row)}`} color="error" onClick={() => setDeleteTarget(row)} size="small">×</IconButton>}
                     </TableCell>
                   </TableRow>)}
             </TableBody>
@@ -330,7 +333,7 @@ function Ofw() {
         <DialogTitle>{selectedRow && fullName(selectedRow)}</DialogTitle>
         <DialogContent dividers>{selectedRow && <DetailView row={selectedRow} />}</DialogContent>
         <DialogActions>
-          <Button onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
+          <Button disabled={isClosed} onClick={() => { setError(''); setFormRow({ ...selectedRow }); setSelectedRow(null) }}>Edit</Button>
           <Button onClick={() => setSelectedRow(null)} variant="contained">Close</Button>
         </DialogActions>
       </Dialog>
@@ -416,6 +419,17 @@ function DetailView({ row }) {
       <DetailSection title="Employment and Repatriation"><DetailFields row={row} keys={['employmentStatus', 'yearsAbroad', 'arrivalDate', 'repatriationNature']} /></DetailSection>
     </>
   )
+}
+
+// Pick a batch first, then show that batch's table.
+function Ofw() {
+  const [batch, setBatch] = useState(null)
+
+  if (!batch) {
+    return <BatchList basePath="/ofw/batches" title="OFW Batches" noun="OFW" nounPlural="OFWs" onOpen={setBatch} />
+  }
+
+  return <OfwTable key={batch.id} batch={batch} onBack={() => setBatch(null)} />
 }
 
 export default Ofw

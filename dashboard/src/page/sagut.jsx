@@ -72,7 +72,7 @@ const columns = [
   ...gwaFields.map(([key, label]) => ({ key, label, group: 'GWA' })),
   { key: 'awardsReceived', group: 'Awards', width: 220 },
   ...employmentFields.map(([key, label]) => ({ key, label, group: 'Current Employment Status' })),
-  { key: 'remarks', group: 'Other', width: 140 },
+  { key: 'remarks', label:'Remarks', group: 'Other', width: 140 },
 ]
 
 // The table only shows the key columns; everything else is in the detail window.
@@ -126,7 +126,7 @@ function SagutTable({ batch, onBack }) {
   const [saving, setSaving] = useState(false)
   const isClosed = batch.status === 'closed'
   const applicantsPath = `/sagut/batches/${batch.id}/applicants`
-  const [remarkOptions, setRemarkOptions] = useState(['Ongoing', 'Dropped'])
+  const [remarkOptions, setRemarkOptions] = useState(['Ongoing','Waiting', 'Dropped'])
   const [newRemark, setNewRemark] = useState('')
 
   useEffect(() => {
@@ -356,7 +356,7 @@ function DetailView({ row }) {
       </DetailSection>
       <DetailSection title="Awards Received"><DetailFields row={row} keys={['awardsReceived']} /></DetailSection>
       <DetailSection title="Current Employment Status"><ChipList row={row} fields={employmentFields} /></DetailSection>
-      <DetailSection title="Remarks"><DetailFields row={row} keys={['remarks']} /></DetailSection>
+      <DetailSection title="Application Status"><DetailFields row={row} keys={['remarks']} /></DetailSection>
     </>
   )
 }
