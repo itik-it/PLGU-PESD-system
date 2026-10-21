@@ -5,7 +5,10 @@ const helmet = require('helmet')
 
 const env = require('./env')
 const { authRoutes, usersRoutes, requireAuth } = require('./auth')
-const { gipPool, usersPool, guwipPool, doktorPool, trpatuPool, tupadPool, ofwPool, livelihoodPool } = require('./db')
+const {
+  gipPool, usersPool, guwipPool, doktorPool, trpatuPool, tupadPool, ofwPool, livelihoodPool,
+  jobseekerPool, spesPool, bridgingPool, jobvacancyPool,
+} = require('./db')
 const {
   errorHandler,
   notFoundHandler,
@@ -18,6 +21,10 @@ const trpatuRoutes = require('./routes/trpatu.routes')
 const tupadRoutes = require('./routes/tupad.routes')
 const ofwRoutes = require('./routes/ofw.routes')
 const livelihoodRoutes = require('./routes/livelihood.routes')
+const jobseekerRoutes = require('./routes/jobseeker.routes')
+const spesRoutes = require('./routes/spes.routes')
+const bridgingRoutes = require('./routes/bridging.routes')
+const jobvacancyRoutes = require('./routes/jobvacancy.routes')
 
 const app = express()
 
@@ -57,6 +64,10 @@ app.get('/api/health', async (_request, response) => {
     await tupadPool.query('SELECT 1')
     await ofwPool.query('SELECT 1')
     await livelihoodPool.query('SELECT 1')
+    await jobseekerPool.query('SELECT 1')
+    await spesPool.query('SELECT 1')
+    await bridgingPool.query('SELECT 1')
+    await jobvacancyPool.query('SELECT 1')
 
     response.json({
       status: 'ok',
@@ -68,6 +79,10 @@ app.get('/api/health', async (_request, response) => {
       tupadDatabase: 'connected',
       ofwDatabase: 'connected',
       livelihoodDatabase: 'connected',
+      jobseekerDatabase: 'connected',
+      spesDatabase: 'connected',
+      bridgingDatabase: 'connected',
+      jobvacancyDatabase: 'connected',
     })
   } catch (error) {
     console.error('Database health check failed:', error.message)
@@ -82,6 +97,10 @@ app.get('/api/health', async (_request, response) => {
       tupadDatabase: 'disconnected',
       ofwDatabase: 'disconnected',
       livelihoodDatabase: 'disconnected',
+      jobseekerDatabase: 'disconnected',
+      spesDatabase: 'disconnected',
+      bridgingDatabase: 'disconnected',
+      jobvacancyDatabase: 'disconnected',
     })
   }
 })
@@ -95,6 +114,10 @@ app.use('/api/trpatu', requireAuth, trpatuRoutes)
 app.use('/api/tupad', requireAuth, tupadRoutes)
 app.use('/api/ofw', requireAuth, ofwRoutes)
 app.use('/api/livelihood', requireAuth, livelihoodRoutes)
+app.use('/api/jobseeker', requireAuth, jobseekerRoutes)
+app.use('/api/spes', requireAuth, spesRoutes)
+app.use('/api/bridging', requireAuth, bridgingRoutes)
+app.use('/api/jobvacancy', requireAuth, jobvacancyRoutes)
 
 // ERRORS (must stay last)
 
@@ -102,4 +125,3 @@ app.use(notFoundHandler)
 app.use(errorHandler)
 
 module.exports = app
-

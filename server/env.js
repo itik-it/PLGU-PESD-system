@@ -28,6 +28,10 @@ const envSchema = z
     DB_TUPAD_NAME: z.string().min(1).default('lgu_tupad'),
     DB_OFW_NAME: z.string().min(1).default('lgu_ofw'),
     DB_LIVELIHOOD_NAME: z.string().min(1).default('lgu_livelihood'),
+    DB_JOBSEEKER_NAME: z.string().min(1).default('lgu_jobseeker'),
+    DB_SPES_NAME: z.string().min(1).default('lgu_spes'),
+    DB_BRIDGING_NAME: z.string().min(1).default('lgu_bridging'),
+    DB_JOBVACANCY_NAME: z.string().min(1).default('lgu_jobvacancy'),
 
     // Add the variables used by auth/session.js here (for example a session
     // secret) so they are validated at startup too:

@@ -61,6 +61,26 @@ const livelihoodPool = mysql.createPool({
   database: env.DB_LIVELIHOOD_NAME,
 })
 
+const jobseekerPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_JOBSEEKER_NAME,
+})
+
+const spesPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_SPES_NAME,
+})
+
+const bridgingPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_BRIDGING_NAME,
+})
+
+const jobvacancyPool = mysql.createPool({
+  ...baseConfig,
+  database: env.DB_JOBVACANCY_NAME,
+})
+
 // Login database
 const usersPool = mysql.createPool({
   ...baseConfig,
@@ -101,5 +121,9 @@ module.exports = {
   tupadPool,
   ofwPool,
   livelihoodPool,
+  jobseekerPool,
+  spesPool,
+  bridgingPool,
+  jobvacancyPool,
   withTransaction,
 }
