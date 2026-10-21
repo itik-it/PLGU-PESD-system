@@ -31,11 +31,6 @@ import BatchList from '../components/BatchList.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
 
 const rowsPerPage = 10
-<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
-
-=======
-const applicantsPath = '/dilp/applicants'
->>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
 const today = new Date().toISOString().slice(0, 10)
 
 const projectTypeOptions = ['Individual', 'Group']
@@ -137,11 +132,7 @@ const display = (row, key) => {
   return row[key] === '' || row[key] === null || row[key] === undefined ? '—' : row[key]
 }
 
-<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
-function LivelihoodTable({ batch, onBack }) {
-=======
-function Dilp() {
->>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
+function DilpTable({ batch, onBack }) {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -154,7 +145,7 @@ function Dilp() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const isClosed = batch.status === 'closed'
-  const applicantsPath = `/livelihood/batches/${batch.id}/applicants`
+  const applicantsPath = `/dilp/batches/${batch.id}/applicants`
 
   useEffect(() => {
     api.get(applicantsPath).then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
@@ -212,18 +203,13 @@ function Dilp() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-            <Button className="gip-home-button" onClick={onBack}>
+          <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
             All batches
           </Button>
           <Box className="gip-eyebrow">PROGRAM TRACKING DATABASE</Box>
-<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
-          <Typography className="gip-page-title" component="h1" variant="h5">DOLE Integrated Livelihood Program · {batch.name}</Typography>
-          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review Livelihood program applicants and beneficiaries.'}</Typography>
-=======
-          <Typography className="gip-page-title" component="h1" variant="h5">DOLE Integrated Livelihood Program (DILP)</Typography>
-          <Typography className="gip-page-hint" component="p" variant="body2">Manage, search, and review DILP applicants and beneficiaries.</Typography>
->>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
+          <Typography className="gip-page-title" component="h1" variant="h5">DOLE Integrated Livelihood Program (DILP) · {batch.name}</Typography>
+          <Typography className="gip-page-hint" component="p" variant="body2">{isClosed ? 'This batch is closed. Records are read-only until an administrator reopens it.' : 'Manage, search, and review DILP applicants and beneficiaries.'}</Typography>
         </Box>
         <Box className="gip-record-count"><strong>{rows.length}</strong><span>applicants</span></Box>
       </Box>
@@ -232,13 +218,8 @@ function Dilp() {
           <Typography className="gip-section-title" component="h2" variant="h6">Applicant List</Typography>
           {error && !formRow && <Typography color="error" role="alert" variant="body2">{error}</Typography>}
           <Box className="gip-toolbar-actions">
-<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
-            <TextField aria-label="Search Livelihood applicants" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search applicants..." size="small" value={search} />
-            <Button className="gip-add-button" disabled={isClosed} variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
-=======
             <TextField aria-label="Search DILP applicants" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search applicants..." size="small" value={search} />
-            <Button className="gip-add-button" variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
->>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
+            <Button className="gip-add-button" disabled={isClosed} variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
           </Box>
         </Box>
         <TableContainer className="gip-table-container sagut-table-container">
@@ -418,19 +399,15 @@ function DetailView({ row }) {
   )
 }
 
-<<<<<<< Updated upstream:dashboard/src/page/livelihood.jsx
 // Pick a batch first, then show that batch's table.
-function Livelihood() {
+function Dilp() {
   const [batch, setBatch] = useState(null)
 
   if (!batch) {
-    return <BatchList basePath="/livelihood/batches" title="Livelihood Batches" noun="applicant" nounPlural="applicants" onOpen={setBatch} />
+    return <BatchList basePath="/dilp/batches" title="DILP Batches" noun="applicant" nounPlural="applicants" onOpen={setBatch} />
   }
 
-  return <LivelihoodTable key={batch.id} batch={batch} onBack={() => setBatch(null)} />
+  return <DilpTable key={batch.id} batch={batch} onBack={() => setBatch(null)} />
 }
 
-export default Livelihood
-=======
 export default Dilp
->>>>>>> Stashed changes:dashboard/src/page/dilp.jsx
