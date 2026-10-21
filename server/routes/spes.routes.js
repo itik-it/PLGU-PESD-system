@@ -58,8 +58,23 @@ const save = async (body, id = null) => withTransaction(spesPool, async (connect
 })
 
 const router = express.Router()
-router.get('/applicants', asyncHandler(async (_request, response) => {
-  const [rows] = await spesPool.query(`SELECT id, ${select} FROM spes_applicants ORDER BY id`)
+router.get('/applicants', asyncHandler(async (request, response) => {
+  const search = String(request.query.search || '').trim()
+  const where = search
+    ? `WHERE CONCAT_WS(' ', ${Object.values(fields).join(', ')}) LIKE ?
+       OR EXISTS (
+         SELECT 1 FROM spes_education education
+         WHERE education.applicant_id = spes_applicants.id
+           AND CONCAT_WS(' ', education.level, education.school_name, education.course, education.year_level, education.date_of_attendance) LIKE ?
+       )
+       OR EXISTS (
+         SELECT 1 FROM spes_availment_history history
+         WHERE history.applicant_id = spes_applicants.id
+           AND CONCAT_WS(' ', history.establishment_name, history.year_availed, history.spes_id_no) LIKE ?
+       )`
+    : ''
+  const parameters = search ? [`%${search}%`, `%${search}%`, `%${search}%`] : []
+  const [rows] = await spesPool.query(`SELECT id, ${select} FROM spes_applicants ${where} ORDER BY id`, parameters)
   response.json(await Promise.all(rows.map((row) => readOne(row.id))))
 }))
 router.post('/applicants', asyncHandler(async (request, response) => response.status(201).json(await save(request.body))))

@@ -48,8 +48,18 @@ const save = async (body, id = null) => withTransaction(jobvacancyPool, async (c
 })
 
 const router = express.Router()
-router.get('/employers', asyncHandler(async (_request, response) => {
-  const [rows] = await jobvacancyPool.query(`SELECT id, ${select} FROM jobvacancy_employers ORDER BY id`)
+router.get('/employers', asyncHandler(async (request, response) => {
+  const search = String(request.query.search || '').trim()
+  const where = search
+    ? `WHERE CONCAT_WS(' ', ${Object.values(fields).join(', ')}) LIKE ?
+       OR EXISTS (
+         SELECT 1 FROM jobvacancy_vacancies vacancy
+         WHERE vacancy.employer_id = jobvacancy_employers.id
+           AND CONCAT_WS(' ', vacancy.position_title, vacancy.job_description, vacancy.nature_of_work, vacancy.place_of_work, vacancy.salary, vacancy.vacancy_count) LIKE ?
+       )`
+    : ''
+  const parameters = search ? [`%${search}%`, `%${search}%`] : []
+  const [rows] = await jobvacancyPool.query(`SELECT id, ${select} FROM jobvacancy_employers ${where} ORDER BY id`, parameters)
   response.json(await Promise.all(rows.map((row) => readOne(row.id))))
 }))
 router.post('/employers', asyncHandler(async (request, response) => response.status(201).json(await save(request.body))))

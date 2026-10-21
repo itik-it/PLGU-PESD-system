@@ -54,8 +54,18 @@ const save = async (body, id = null) => withTransaction(bridgingPool, async (con
 })
 
 const router = express.Router()
-router.get('/applicants', asyncHandler(async (_request, response) => {
-  const [rows] = await bridgingPool.query(`SELECT id, ${select} FROM bridging_applicants ORDER BY id`)
+router.get('/applicants', asyncHandler(async (request, response) => {
+  const search = String(request.query.search || '').trim()
+  const where = search
+    ? `WHERE CONCAT_WS(' ', ${Object.values(fields).join(', ')}) LIKE ?
+       OR EXISTS (
+         SELECT 1 FROM bridging_education education
+         WHERE education.applicant_id = bridging_applicants.id
+           AND CONCAT_WS(' ', education.school_name, education.year_from, education.year_to, education.year_level) LIKE ?
+       )`
+    : ''
+  const parameters = search ? [`%${search}%`, `%${search}%`] : []
+  const [rows] = await bridgingPool.query(`SELECT id, ${select} FROM bridging_applicants ${where} ORDER BY id`, parameters)
   const result = await Promise.all(rows.map(async (row) => ({ ...row, education: (await bridgingPool.query('SELECT id, school_name AS schoolName, year_from AS yearFrom, year_to AS yearTo, year_level AS yearLevel FROM bridging_education WHERE applicant_id = ? ORDER BY id', [row.id]))[0] })))
   response.json(result)
 }))

@@ -140,13 +140,16 @@ function Spes() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api.get(basePath).then((data) => setRows(data.map(fromApi))).catch((loadError) => setError(loadError.message)).finally(() => setLoading(false))
-  }, [])
+    const query = debouncedSearch.trim()
+    api.get(`${basePath}${query ? `?search=${encodeURIComponent(query)}` : ''}`)
+      .then((data) => setRows(data.map(fromApi)))
+      .catch((loadError) => setError(loadError.message))
+      .finally(() => setLoading(false))
+  }, [debouncedSearch])
 
   const filteredRows = useMemo(() => {
-    const query = debouncedSearch.trim().toLowerCase()
-    return query ? rows.filter((row) => columns.some(({ key }) => String(row[key] ?? '').toLowerCase().includes(query))) : rows
-  }, [rows, debouncedSearch])
+    return rows
+  }, [rows])
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage))
   const visiblePage = Math.min(page, pageCount - 1)
   const pagedRows = filteredRows.slice(visiblePage * rowsPerPage, (visiblePage + 1) * rowsPerPage)

@@ -35,8 +35,11 @@ const readOne = async (id) => {
 }
 
 const router = express.Router()
-router.get('/applicants', asyncHandler(async (_request, response) => {
-  const [rows] = await jobseekerPool.query(`SELECT id, ${select} FROM applicants ORDER BY id`)
+router.get('/applicants', asyncHandler(async (request, response) => {
+  const search = String(request.query.search || '').trim()
+  const where = search ? `WHERE CONCAT_WS(' ', ${Object.values(fields).join(', ')}) LIKE ?` : ''
+  const parameters = search ? [`%${search}%`] : []
+  const [rows] = await jobseekerPool.query(`SELECT id, ${select} FROM applicants ${where} ORDER BY id`, parameters)
   response.json(rows)
 }))
 router.post('/applicants', asyncHandler(async (request, response) => {
