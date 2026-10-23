@@ -13,12 +13,12 @@ const { asyncHandler } = require('./async-handler')
 const { parseId } = require('./parse-id')
 const { toBatchResponse } = require('./batch.utils')
 
-const BATCH_SELECT = `
+const batchSelect = (recordsTable) => `
   SELECT
     b.id, b.batch_year, b.batch_no, b.name, b.status, b.created_at,
     COUNT(a.id) AS applicant_count
   FROM batches b
-  LEFT JOIN applicants a ON a.batch_id = b.id
+  LEFT JOIN ${recordsTable} a ON a.batch_id = b.id
 `
 
 /**
@@ -50,12 +50,12 @@ async function getBatchOrFail(executor, batchId, { requireOpen = false } = {}) {
  *   program         prefix for generated names, e.g. 'DOKTOR' -> "DOKTOR 2026 - Batch 1"
  *   applicantsRouter  router created with express.Router({ mergeParams: true })
  */
-function createBatchesRouter({ pool, program, applicantsRouter }) {
+function createBatchesRouter({ pool, program, applicantsRouter, recordsTable = 'applicants' }) {
   const router = express.Router()
 
   const findBatch = async (batchId) => {
     const [rows] = await pool.query(
-      `${BATCH_SELECT} WHERE b.id = ? GROUP BY b.id`,
+      `${batchSelect(recordsTable)} WHERE b.id = ? GROUP BY b.id`,
       [batchId]
     )
     return toBatchResponse(rows[0])
@@ -66,7 +66,7 @@ function createBatchesRouter({ pool, program, applicantsRouter }) {
     '/',
     asyncHandler(async (_request, response) => {
       const [rows] = await pool.query(
-        `${BATCH_SELECT}
+        `${batchSelect(recordsTable)}
          GROUP BY b.id
          ORDER BY b.batch_year DESC, b.batch_no DESC`
       )
@@ -79,17 +79,17 @@ function createBatchesRouter({ pool, program, applicantsRouter }) {
     '/',
     requireAdmin,
     asyncHandler(async (request, response) => {
-      const { year } = createBatchSchema.parse(request.body)
+      const { year, name } = createBatchSchema.parse(request.body)
 
       const [result] = await pool.query(
         `INSERT INTO batches (batch_year, batch_no, name)
          SELECT
            ?,
            COALESCE(MAX(batch_no), 0) + 1,
-           CONCAT(?, ' ', ?, ' - Batch ', COALESCE(MAX(batch_no), 0) + 1)
+           COALESCE(NULLIF(?, ''), CONCAT('Batch ', COALESCE(MAX(batch_no), 0) + 1))
          FROM batches
          WHERE batch_year = ?`,
-        [year, program, year, year]
+        [year, name || '', year]
       )
 
       response.status(201).json(await findBatch(result.insertId))
@@ -102,13 +102,13 @@ function createBatchesRouter({ pool, program, applicantsRouter }) {
     requireAdmin,
     asyncHandler(async (request, response) => {
       const batchId = parseId(request.params.batchId, 'Batch ID')
-      const { status } = updateBatchSchema.parse(request.body)
+      const { status, name } = updateBatchSchema.parse(request.body)
 
       await getBatchOrFail(pool, batchId)
-      await pool.query('UPDATE batches SET status = ? WHERE id = ?', [
-        status,
-        batchId,
-      ])
+      const changes = {}
+      if (status) changes.status = status
+      if (name) changes.name = name
+      await pool.query('UPDATE batches SET ? WHERE id = ?', [changes, batchId])
 
       response.json(await findBatch(batchId))
     })

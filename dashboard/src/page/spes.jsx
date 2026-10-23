@@ -28,8 +28,8 @@ import {
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
+import BatchList from '../components/BatchList.jsx'
 
-const basePath = '/spes/applicants'
 
 const parentStatusFields = [
   ['parentsLivingTogether', 'Living Together'], ['parentsSoloParent', 'Solo Parent'], ['parentsSeparated', 'Separated'],
@@ -126,7 +126,8 @@ const blankRow = () => columns.filter((column) => !column.derived).reduce((row, 
 }, { id: null })
 const emptyRow = () => normalize({ ...blankRow(), ...newRowDefaults })
 const fromApi = (row) => normalize({ ...blankRow(), ...row, id: row.id })
-function Spes() {
+function SpesForm({ batch, onBack }) {
+  const basePath = `/spes/batches/${batch.id}/applicants`
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -199,7 +200,7 @@ function Spes() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-            <Button className="gip-home-button" href="/">
+            <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
             Back to Dashboard
           </Button>
@@ -424,4 +425,8 @@ function ItemDetails({ items, fields }) {
   )
 }
 
-export default Spes
+export default function Spes() {
+  const [batch, setBatch] = useState(null)
+  if (!batch) return <BatchList basePath="/spes/batches" noun="applicant" nounPlural="applicants" onOpen={setBatch} title="SPES Groups" />
+  return <SpesForm batch={batch} onBack={() => setBatch(null)} />
+}

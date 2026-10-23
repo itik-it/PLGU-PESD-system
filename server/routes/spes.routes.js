@@ -7,6 +7,7 @@ const { HttpError } = require('../errors')
 const { asyncHandler } = require('../utils/async-handler')
 const { parseId } = require('../utils/parse-id')
 const { cleanItems, createCleaner } = require('../utils/program-record')
+const { createBatchesRouter, getBatchOrFail } = require('../utils/program-batches')
 
 const fields = {
   lastName: 'last_name', firstName: 'first_name', middleName: 'middle_name', sex: 'sex', birthdate: 'birthdate',
@@ -30,38 +31,42 @@ const clean = createCleaner(fields, { required: ['lastName', 'firstName', 'sex',
 const cleanEducation = (items) => cleanItems(items, educationFields, { name: 'education' })
 const cleanHistory = (items) => cleanItems(items, historyFields, { name: 'availmentHistory', numberFields: ['availmentNo'] })
 
-const readOne = async (id, connection = spesPool) => {
-  const [rows] = await connection.query(`SELECT id, ${select} FROM spes_applicants WHERE id = ?`, [id])
+const readOne = async (id, batchId, connection = spesPool) => {
+  const [rows] = await connection.query(`SELECT id, ${select} FROM spes_applicants WHERE id = ? AND batch_id = ?`, [id, batchId])
   if (!rows.length) throw new HttpError(404, 'SPES applicant not found.')
   const [education] = await connection.query('SELECT id, level, school_name AS schoolName, course, year_level AS yearLevel, date_of_attendance AS dateOfAttendance FROM spes_education WHERE applicant_id = ? ORDER BY id', [id])
   const [availmentHistory] = await connection.query('SELECT id, availment_no AS availmentNo, establishment_name AS establishmentName, year_availed AS yearAvailed, spes_id_no AS spesIdNo FROM spes_availment_history WHERE applicant_id = ? ORDER BY availment_no', [id])
   return { ...rows[0], education, availmentHistory }
 }
 
-const save = async (body, id = null) => withTransaction(spesPool, async (connection) => {
+const save = async (body, batchId, id = null) => withTransaction(spesPool, async (connection) => {
+  await getBatchOrFail(connection, batchId, { requireOpen: true })
   const applicant = clean(body)
   const education = cleanEducation(body.education || [])
   const history = cleanHistory(body.availmentHistory || [])
   let applicantId = id
   if (id === null) {
-    const [result] = await connection.query('INSERT INTO spes_applicants SET ?', applicant)
+    const [result] = await connection.query('INSERT INTO spes_applicants SET ?', { ...applicant, batch_id: batchId })
     applicantId = result.insertId
   } else {
-    await readOne(id, connection)
-    await connection.query('UPDATE spes_applicants SET ? WHERE id = ?', [applicant, id])
+    await readOne(id, batchId, connection)
+    await connection.query('UPDATE spes_applicants SET ? WHERE id = ? AND batch_id = ?', [applicant, id, batchId])
     await connection.query('DELETE FROM spes_education WHERE applicant_id = ?', [id])
     await connection.query('DELETE FROM spes_availment_history WHERE applicant_id = ?', [id])
   }
   for (const item of education) await connection.query('INSERT INTO spes_education SET ?', { ...item, applicant_id: applicantId })
   for (const item of history) await connection.query('INSERT INTO spes_availment_history SET ?', { ...item, applicant_id: applicantId })
-  return readOne(applicantId, connection)
+  return readOne(applicantId, batchId, connection)
 })
 
-const router = express.Router()
-router.get('/applicants', asyncHandler(async (request, response) => {
+const applicants = express.Router({ mergeParams: true })
+const batchIdOf = (request) => parseId(request.params.batchId, 'Group ID')
+applicants.get('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(spesPool, batchId)
   const search = String(request.query.search || '').trim()
   const where = search
-    ? `WHERE CONCAT_WS(' ', ${Object.values(fields).join(', ')}) LIKE ?
+    ? `WHERE batch_id = ? AND (CONCAT_WS(' ', ${Object.values(fields).join(', ')}) LIKE ?
        OR EXISTS (
          SELECT 1 FROM spes_education education
          WHERE education.applicant_id = spes_applicants.id
@@ -71,19 +76,23 @@ router.get('/applicants', asyncHandler(async (request, response) => {
          SELECT 1 FROM spes_availment_history history
          WHERE history.applicant_id = spes_applicants.id
            AND CONCAT_WS(' ', history.establishment_name, history.year_availed, history.spes_id_no) LIKE ?
-       )`
-    : ''
-  const parameters = search ? [`%${search}%`, `%${search}%`, `%${search}%`] : []
+       ))`
+    : 'WHERE batch_id = ?'
+  const parameters = search ? [batchId, `%${search}%`, `%${search}%`, `%${search}%`] : [batchId]
   const [rows] = await spesPool.query(`SELECT id, ${select} FROM spes_applicants ${where} ORDER BY id`, parameters)
-  response.json(await Promise.all(rows.map((row) => readOne(row.id))))
+  response.json(await Promise.all(rows.map((row) => readOne(row.id, batchId))))
 }))
-router.post('/applicants', asyncHandler(async (request, response) => response.status(201).json(await save(request.body))))
-router.put('/applicants/:id', asyncHandler(async (request, response) => response.json(await save(request.body, parseId(request.params.id, 'Applicant ID')))))
-router.delete('/applicants/:id', requireAdmin, asyncHandler(async (request, response) => {
+applicants.post('/', asyncHandler(async (request, response) => response.status(201).json(await save(request.body, batchIdOf(request)))))
+applicants.put('/:id', asyncHandler(async (request, response) => response.json(await save(request.body, batchIdOf(request), parseId(request.params.id, 'Applicant ID')))))
+applicants.delete('/:id', requireAdmin, asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(spesPool, batchId, { requireOpen: true })
   const id = parseId(request.params.id, 'Applicant ID')
-  const [result] = await spesPool.query('DELETE FROM spes_applicants WHERE id = ?', [id])
+  const [result] = await spesPool.query('DELETE FROM spes_applicants WHERE id = ? AND batch_id = ?', [id, batchId])
   if (!result.affectedRows) throw new HttpError(404, 'SPES applicant not found.')
   response.status(204).end()
 }))
 
+const router = express.Router()
+router.use('/batches', createBatchesRouter({ pool: spesPool, program: 'SPES', applicantsRouter: applicants, recordsTable: 'spes_applicants' }))
 module.exports = router
