@@ -29,8 +29,7 @@ import {
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
-
-const basePath = '/bridging/applicants'
+import BatchList from '../components/BatchList.jsx'
 
 const parentStatusFields = [
   ['parentSoloParent', 'Solo Parent'], ['parentPwd', 'PWD'], ['parentSeniorCitizen', 'Senior Citizen'],
@@ -116,7 +115,8 @@ const blankRow = () => columns.filter((column) => !column.derived).reduce((row, 
 }, { id: null })
 const emptyRow = () => normalize({ ...blankRow(), ...newRowDefaults })
 const fromApi = (row) => normalize({ ...blankRow(), ...row, id: row.id })
-function Bridging() {
+function BridgingForm({ batch, onBack }) {
+  const basePath = `/bridging/batches/${batch.id}/applicants`
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -185,7 +185,7 @@ function Bridging() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-            <Button className="gip-home-button" href="/">
+            <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
             Back to Dashboard
           </Button>
@@ -439,4 +439,8 @@ function ItemDetails({ items, fields }) {
   )
 }
 
-export default Bridging
+export default function Bridging() {
+  const [batch, setBatch] = useState(null)
+  if (!batch) return <BatchList basePath="/bridging/batches" noun="applicant" nounPlural="applicants" onOpen={setBatch} title="Bridging Groups" />
+  return <BridgingForm batch={batch} onBack={() => setBatch(null)} />
+}

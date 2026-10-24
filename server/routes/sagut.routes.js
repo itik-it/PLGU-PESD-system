@@ -247,7 +247,20 @@ applicants.delete(
   })
 )
 
+// Used by the Excel export / import (utils/program-excel-router.js).
+const excel = {
+  list: async (executor, batchId) => {
+    const [rows] = await executor.query('SELECT * FROM applicants WHERE batch_id = ? ORDER BY id', [batchId])
+    return rows.map(toApi)
+  },
+  insert: (connection, batchId, data) =>
+    connection.query(
+      `INSERT INTO applicants (${COLUMN_LIST}, batch_id) VALUES (${PLACEHOLDERS}, ?)`,
+      [...valuesFor(parseApplicant(data)), batchId]
+    ),
+}
+
 const router = express.Router()
-router.use('/batches', createBatchesRouter({ pool: sagutPool, program: 'SAGUT', applicantsRouter: applicants }))
+router.use('/batches', createBatchesRouter({ pool: sagutPool, program: 'SAGUT', applicantsRouter: applicants, excel }))
 
 module.exports = router

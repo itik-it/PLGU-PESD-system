@@ -50,6 +50,7 @@ function splitYears(groups) {
 // Small dialog: the admin types a year, the server picks the batch number.
 function CreateBatchDialog({ basePath, onClose, onCreated }) {
   const [year, setYear] = useState(String(CURRENT_YEAR))
+  const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -58,7 +59,7 @@ function CreateBatchDialog({ basePath, onClose, onCreated }) {
     setSaving(true)
     setError('')
     try {
-      await api.post(basePath, { year: Number(year) })
+      await api.post(basePath, { year: Number(year), name })
       onCreated()
     } catch (saveError) {
       setError(saveError.message)
@@ -69,7 +70,7 @@ function CreateBatchDialog({ basePath, onClose, onCreated }) {
   return (
     <Dialog open onClose={saving ? undefined : onClose} fullWidth maxWidth="xs">
       <Box component="form" onSubmit={handleSubmit} noValidate>
-        <DialogTitle sx={{ fontWeight: 800 }}>Create batch</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>Create group</DialogTitle>
         <DialogContent>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -84,15 +85,16 @@ function CreateBatchDialog({ basePath, onClose, onCreated }) {
             type="number"
             value={year}
             onChange={(event) => setYear(event.target.value)}
-            helperText="The batch number (Batch 1, Batch 2, ...) is assigned automatically."
+            helperText="Leave the name blank to use Batch 1, Batch 2, and so on."
           />
+          <TextField fullWidth margin="dense" label="Group name (optional)" onChange={(event) => setName(event.target.value)} placeholder="e.g. Barangay Recruitment Drive" value={name} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button type="submit" variant="contained" disabled={saving}>
-            {saving ? 'Creating...' : 'Create batch'}
+            {saving ? 'Creating...' : 'Create group'}
           </Button>
         </DialogActions>
       </Box>
@@ -107,7 +109,7 @@ function ConfirmCloseDialog({ batch, busy, nounPlural, onCancel, onConfirm }) {
       <DialogTitle sx={{ fontWeight: 800 }}>Close {batch.name}?</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          Nobody can add or edit {nounPlural} in a closed batch until an administrator reopens it.
+          Nobody can add or edit {nounPlural} in a closed group until an administrator reopens it.
         </DialogContentText>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -115,15 +117,33 @@ function ConfirmCloseDialog({ batch, busy, nounPlural, onCancel, onConfirm }) {
           Cancel
         </Button>
         <Button variant="contained" onClick={onConfirm} disabled={busy}>
-          {busy ? 'Closing...' : 'Close batch'}
+          {busy ? 'Closing...' : 'Close group'}
         </Button>
       </DialogActions>
     </Dialog>
   )
 }
 
+function RenameGroupDialog({ batch, onCancel, onSave }) {
+  const [name, setName] = useState(batch.name)
+  return (
+    <Dialog open onClose={onCancel} fullWidth maxWidth="xs">
+      <Box component="form" onSubmit={(event) => { event.preventDefault(); onSave(name) }}>
+        <DialogTitle sx={{ fontWeight: 800 }}>Rename group</DialogTitle>
+        <DialogContent>
+          <TextField autoFocus fullWidth label="Group name" onChange={(event) => setName(event.target.value)} required value={name} />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={onCancel}>Cancel</Button>
+          <Button type="submit" variant="contained">Save name</Button>
+        </DialogActions>
+      </Box>
+    </Dialog>
+  )
+}
+
 // The whole card opens the batch. Admin actions live in the "..." menu.
-function BatchCard({ batch, isAdmin, busy, noun, nounPlural, onOpen, onClose, onReopen }) {
+function BatchCard({ batch, isAdmin, busy, noun, nounPlural, onOpen, onClose, onReopen, onRename }) {
   const [anchor, setAnchor] = useState(null)
   const isClosed = batch.status === 'closed'
   const isEmpty = batch.applicantCount === 0
@@ -192,8 +212,9 @@ function BatchCard({ batch, isAdmin, busy, noun, nounPlural, onOpen, onClose, on
                 else onClose(batch)
               }}
             >
-              {isClosed ? 'Reopen batch' : 'Close batch'}
+              {isClosed ? 'Reopen group' : 'Close group'}
             </MenuItem>
+            <MenuItem onClick={() => { setAnchor(null); onRename(batch) }}>Rename group</MenuItem>
           </Menu>
         </>
       )}
@@ -201,7 +222,7 @@ function BatchCard({ batch, isAdmin, busy, noun, nounPlural, onOpen, onClose, on
   )
 }
 
-function YearSection({ group, expanded, onToggle, isAdmin, busyId, noun, nounPlural, onOpen, onClose, onReopen }) {
+function YearSection({ group, expanded, onToggle, isAdmin, busyId, noun, nounPlural, onOpen, onClose, onReopen, onRename }) {
   const { year, batches, total } = group
   const panelId = `year-panel-${year}`
 
@@ -229,7 +250,7 @@ function YearSection({ group, expanded, onToggle, isAdmin, busyId, noun, nounPlu
           {year}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {batches.length} {batches.length === 1 ? 'batch' : 'batches'}, {total}{' '}
+          {batches.length} {batches.length === 1 ? 'group' : 'groups'}, {total}{' '}
           {total === 1 ? noun : nounPlural}
         </Typography>
       </ButtonBase>
@@ -256,6 +277,7 @@ function YearSection({ group, expanded, onToggle, isAdmin, busyId, noun, nounPlu
               noun={noun}
               nounPlural={nounPlural}
               onReopen={onReopen}
+              onRename={onRename}
             />
           ))}
         </Box>
@@ -283,6 +305,7 @@ export default function BatchList({
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState(null)
   const [closing, setClosing] = useState(null) // batch waiting for confirmation
+  const [renaming, setRenaming] = useState(null)
   const [showUpcoming, setShowUpcoming] = useState(false)
   const [expandedYears, setExpandedYears] = useState(() => new Set([CURRENT_YEAR]))
 
@@ -308,6 +331,20 @@ export default function BatchList({
     } finally {
       setBusyId(null)
       setClosing(null)
+    }
+  }
+
+  const renameGroup = async (name) => {
+    setBusyId(renaming.id)
+    setError('')
+    try {
+      const updated = await api.patch(`${basePath}/${renaming.id}`, { name })
+      setBatches((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      setRenaming(null)
+    } catch (renameError) {
+      setError(renameError.message)
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -337,6 +374,7 @@ export default function BatchList({
       onOpen={onOpen}
       onClose={setClosing}
       onReopen={(batch) => setStatus(batch, 'open')}
+      onRename={setRenaming}
       noun={noun}
       nounPlural={nounPlural}
     />
@@ -357,12 +395,12 @@ export default function BatchList({
             {title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Choose a batch to view or encode its {nounPlural}.
+            Choose a group to view or encode its {nounPlural}.
           </Typography>
         </Box>
         {isAdmin && (
           <Button variant="contained" onClick={() => setCreating(true)}>
-            Create batch
+            Create group
           </Button>
         )}
       </Box>
@@ -381,7 +419,7 @@ export default function BatchList({
 
       {!loading && !error && batches.length === 0 && (
         <Typography color="text.secondary">
-          No batches yet. {isAdmin ? 'Create the first batch to begin.' : 'Ask an administrator to create one.'}
+          No groups yet. {isAdmin ? 'Create the first group to begin.' : 'Ask an administrator to create one.'}
         </Typography>
       )}
 
@@ -399,6 +437,7 @@ export default function BatchList({
       )}
 
       {creating && <CreateBatchDialog basePath={basePath} onClose={() => setCreating(false)} onCreated={handleCreated} />}
+      {renaming && <RenameGroupDialog batch={renaming} onCancel={() => setRenaming(null)} onSave={renameGroup} />}
 
       {closing && (
         <ConfirmCloseDialog

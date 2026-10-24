@@ -26,7 +26,7 @@ const statusStyle = {
 
 // Import from the GIP Excel form in 2 steps: check the file, then confirm.
 // Render this only while it is open, so it starts fresh every time.
-export default function ImportDialog({ batch, onClose, onImported }) {
+export default function ImportDialog({ batch, onClose, onImported, basePath: apiBase = '/gip/batches', hint }) {
   const fileInput = useRef(null)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -34,7 +34,7 @@ export default function ImportDialog({ batch, onClose, onImported }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  const basePath = `/gip/batches/${batch.id}/import`
+  const basePath = `${apiBase}/${batch.id}/import`
 
   const checkFile = async () => {
     setBusy(true)
@@ -93,10 +93,10 @@ export default function ImportDialog({ batch, onClose, onImported }) {
         {!preview && !result && (
           <Box sx={{ display: 'grid', gap: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Upload the GIP Excel form (.xlsx). A check mark (✓ or /) means submitted or selected.
+              {hint || (<>Upload the GIP Excel form (.xlsx). A check mark (✓ or /) means submitted or selected.
               Required: last and first name, course, birthday, contact number (11 digits), Gmail
               address and date applied. Civil status can be S, M, W or SP. Nothing is saved
-              until you confirm on the next step.
+              until you confirm on the next step.</>)}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               <Button variant="outlined" onClick={() => fileInput.current.click()}>

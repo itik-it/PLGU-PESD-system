@@ -7,6 +7,7 @@ const { HttpError } = require('../errors')
 const { asyncHandler } = require('../utils/async-handler')
 const { parseId } = require('../utils/parse-id')
 const { createCleaner } = require('../utils/program-record')
+const { createBatchesRouter, getBatchOrFail } = require('../utils/program-batches')
 
 const fields = {
   lastName: 'surname', firstName: 'first_name', middleName: 'middle_name', suffix: 'suffix',
@@ -28,35 +29,46 @@ const clean = createCleaner(fields, {
   booleanFields: ['disabilityVisual', 'disabilitySpeech', 'disabilityHearing', 'disabilityPhysical', 'disabilityOthers'],
 })
 
-const readOne = async (id) => {
-  const [rows] = await jobseekerPool.query(`SELECT id, ${select} FROM applicants WHERE id = ?`, [id])
+const readOne = async (id, batchId) => {
+  const [rows] = await jobseekerPool.query(`SELECT id, ${select} FROM applicants WHERE id = ? AND batch_id = ?`, [id, batchId])
   if (!rows.length) throw new HttpError(404, 'Job seeker not found.')
   return rows[0]
 }
 
-const router = express.Router()
-router.get('/applicants', asyncHandler(async (request, response) => {
+const applicants = express.Router({ mergeParams: true })
+const batchIdOf = (request) => parseId(request.params.batchId, 'Group ID')
+applicants.get('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(jobseekerPool, batchId)
   const search = String(request.query.search || '').trim()
-  const where = search ? `WHERE CONCAT_WS(' ', ${Object.values(fields).join(', ')}) LIKE ?` : ''
-  const parameters = search ? [`%${search}%`] : []
-  const [rows] = await jobseekerPool.query(`SELECT id, ${select} FROM applicants ${where} ORDER BY id`, parameters)
+  const where = search ? `AND CONCAT_WS(' ', ${Object.values(fields).join(', ')}) LIKE ?` : ''
+  const parameters = search ? [batchId, `%${search}%`] : [batchId]
+  const [rows] = await jobseekerPool.query(`SELECT id, ${select} FROM applicants WHERE batch_id = ? ${where} ORDER BY id`, parameters)
   response.json(rows)
 }))
-router.post('/applicants', asyncHandler(async (request, response) => {
-  const [result] = await jobseekerPool.query('INSERT INTO applicants SET ?', clean(request.body))
+applicants.post('/', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(jobseekerPool, batchId, { requireOpen: true })
+  const [result] = await jobseekerPool.query('INSERT INTO applicants SET ?', { ...clean(request.body), batch_id: batchId })
   response.status(201).json({ id: result.insertId })
 }))
-router.put('/applicants/:id', asyncHandler(async (request, response) => {
+applicants.put('/:id', asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(jobseekerPool, batchId, { requireOpen: true })
   const id = parseId(request.params.id, 'Applicant ID')
-  await readOne(id)
-  await jobseekerPool.query('UPDATE applicants SET ? WHERE id = ?', [clean(request.body), id])
-  response.json(await readOne(id))
+  await readOne(id, batchId)
+  await jobseekerPool.query('UPDATE applicants SET ? WHERE id = ? AND batch_id = ?', [clean(request.body), id, batchId])
+  response.json(await readOne(id, batchId))
 }))
-router.delete('/applicants/:id', requireAdmin, asyncHandler(async (request, response) => {
+applicants.delete('/:id', requireAdmin, asyncHandler(async (request, response) => {
+  const batchId = batchIdOf(request)
+  await getBatchOrFail(jobseekerPool, batchId, { requireOpen: true })
   const id = parseId(request.params.id, 'Applicant ID')
-  const [result] = await jobseekerPool.query('DELETE FROM applicants WHERE id = ?', [id])
+  const [result] = await jobseekerPool.query('DELETE FROM applicants WHERE id = ? AND batch_id = ?', [id, batchId])
   if (!result.affectedRows) throw new HttpError(404, 'Job seeker not found.')
   response.status(204).end()
 }))
 
+const router = express.Router()
+router.use('/batches', createBatchesRouter({ pool: jobseekerPool, program: 'JOBSEEKER', applicantsRouter: applicants }))
 module.exports = router

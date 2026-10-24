@@ -29,8 +29,8 @@ import {
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
+import BatchList from '../components/BatchList.jsx'
 
-const basePath = '/jobseeker/applicants'
 
 const disabilityFields = [
   ['disabilityVisual', 'Visual'], ['disabilitySpeech', 'Speech'], ['disabilityHearing', 'Hearing'],
@@ -128,7 +128,8 @@ const blankRow = () => columns.filter((column) => !column.derived).reduce((row, 
 }, { id: null })
 const emptyRow = () => normalize({ ...blankRow(), ...newRowDefaults })
 const fromApi = (row) => normalize({ ...blankRow(), ...row, id: row.id })
-function Jobseeker() {
+function JobseekerForm({ batch, onBack }) {
+  const basePath = `/jobseeker/batches/${batch.id}/applicants`
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -197,7 +198,7 @@ function Jobseeker() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-            <Button className="gip-home-button" href="/">
+            <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
             Back to Dashboard
           </Button>
@@ -398,4 +399,8 @@ function ChipList({ row, fields }) {
     : <Typography color="text.secondary" variant="body2">None selected</Typography>
 }
 
-export default Jobseeker
+export default function Jobseeker() {
+  const [batch, setBatch] = useState(null)
+  if (!batch) return <BatchList basePath="/jobseeker/batches" noun="job seeker" nounPlural="job seekers" onOpen={setBatch} title="Job Seeker Groups" />
+  return <JobseekerForm batch={batch} onBack={() => setBatch(null)} />
+}

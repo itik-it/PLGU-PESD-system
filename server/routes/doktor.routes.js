@@ -65,7 +65,17 @@ applicants.delete('/:id', requireAdmin, asyncHandler(async (request, response) =
   response.status(204).end()
 }))
 
+// Used by the Excel export / import (utils/program-excel-router.js).
+const excel = {
+  list: async (executor, batchId) => {
+    const [rows] = await executor.query(`SELECT ${select} FROM applicants WHERE batch_id = ? ORDER BY id`, [batchId])
+    return rows
+  },
+  insert: (connection, batchId, data) =>
+    connection.query('INSERT INTO applicants SET ?', { ...clean(data), batch_id: batchId }),
+}
+
 const router = express.Router()
-router.use('/batches', createBatchesRouter({ pool: doktorPool, program: 'DOKTOR', applicantsRouter: applicants }))
+router.use('/batches', createBatchesRouter({ pool: doktorPool, program: 'DOKTOR', applicantsRouter: applicants, excel }))
 
 module.exports = router

@@ -123,7 +123,26 @@ applicants.delete('/:id', requireAdmin, asyncHandler(async (request, response) =
   response.status(204).end()
 }))
 
+// Used by the Excel export / import (utils/program-excel-router.js).
+const excel = {
+  list: (_executor, batchId) => readApplicants(batchId),
+  insert: async (connection, batchId, data) => {
+    const [result] = await connection.query('INSERT INTO applicants SET ?', { ...applicantData(data), batch_id: batchId })
+    const applicantId = result.insertId
+    const [statusRows] = await connection.query('SELECT id, status_name FROM employment_statuses WHERE is_active = TRUE')
+    for (const [key, label] of Object.entries(statusFields)) {
+      const status = data[key] && statusRows.find((row) => row.status_name === label)
+      if (status) await connection.query('INSERT INTO applicant_employment_statuses SET ?', { applicant_id: applicantId, employment_status_id: status.id })
+    }
+    for (const training of data.trainings || []) {
+      await connection.query('INSERT INTO applicant_trainings SET ?', {
+        applicant_id: applicantId, training_title: training.title, number_of_hours: training.hours || null, date_conducted: training.dateConducted || null,
+      })
+    }
+  },
+}
+
 const router = express.Router()
-router.use('/batches', createBatchesRouter({ pool: guwipPool, program: 'GUWIP', applicantsRouter: applicants }))
+router.use('/batches', createBatchesRouter({ pool: guwipPool, program: 'GUWIP', applicantsRouter: applicants, excel }))
 
 module.exports = router

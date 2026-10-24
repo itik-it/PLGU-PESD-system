@@ -53,17 +53,17 @@ router.post(
   '/',
   requireAdmin,
   asyncHandler(async (request, response) => {
-    const { year } = createBatchSchema.parse(request.body)
+    const { year, name } = createBatchSchema.parse(request.body)
 
     const [result] = await gipPool.query(
       `INSERT INTO gip_batches (batch_year, batch_no, name)
        SELECT
          ?,
          COALESCE(MAX(batch_no), 0) + 1,
-         CONCAT('GIP ', ?, ' - Batch ', COALESCE(MAX(batch_no), 0) + 1)
+         COALESCE(NULLIF(?, ''), CONCAT('Batch ', COALESCE(MAX(batch_no), 0) + 1))
        FROM gip_batches
        WHERE batch_year = ?`,
-      [year, year, year]
+      [year, name || '', year]
     )
 
     response.status(201).json(await findBatch(result.insertId))
@@ -77,14 +77,14 @@ router.patch(
   requireAdmin,
   asyncHandler(async (request, response) => {
     const batchId = parseId(request.params.batchId, 'Batch ID')
-    const { status } = updateBatchSchema.parse(request.body)
+    const { status, name } = updateBatchSchema.parse(request.body)
 
     await getBatchOrFail(gipPool, batchId)
 
-    await gipPool.query('UPDATE gip_batches SET status = ? WHERE id = ?', [
-      status,
-      batchId,
-    ])
+    const changes = {}
+    if (status) changes.status = status
+    if (name) changes.name = name
+    await gipPool.query('UPDATE gip_batches SET ? WHERE id = ?', [changes, batchId])
 
     response.json(await findBatch(batchId))
   })

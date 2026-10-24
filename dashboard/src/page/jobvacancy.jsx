@@ -27,8 +27,8 @@ import {
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
+import BatchList from '../components/BatchList.jsx'
 
-const basePath = '/jobvacancy/employers'
 
 const employerTypeOptions = [
   ['National Government Agency', 'Public · National Government Agency'],
@@ -115,7 +115,8 @@ const blankRow = () => columns.filter((column) => !column.derived).reduce((row, 
 }, { id: null })
 const emptyRow = () => normalize({ ...blankRow(), ...newRowDefaults })
 const fromApi = (row) => normalize({ ...blankRow(), ...row, id: row.id })
-function JobVacancy() {
+function JobVacancyForm({ batch, onBack }) {
+  const basePath = `/jobvacancy/batches/${batch.id}/applicants`
   const { user } = useAuth()
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
@@ -184,7 +185,7 @@ function JobVacancy() {
     <main className="gip-page sagut-page">
       <Box className="gip-page-heading">
         <Box>
-            <Button className="gip-home-button" href="/">
+            <Button className="gip-home-button" onClick={onBack}>
             <span aria-hidden="true">←</span>
             Back to Dashboard
           </Button>
@@ -395,4 +396,8 @@ function ItemDetails({ items, fields }) {
   )
 }
 
-export default JobVacancy
+export default function JobVacancy() {
+  const [batch, setBatch] = useState(null)
+  if (!batch) return <BatchList basePath="/jobvacancy/batches" noun="employer" nounPlural="employers" onOpen={setBatch} title="Job Vacancy Groups" />
+  return <JobVacancyForm batch={batch} onBack={() => setBatch(null)} />
+}
