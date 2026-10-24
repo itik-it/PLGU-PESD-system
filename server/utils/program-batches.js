@@ -12,6 +12,7 @@ const {
 const { asyncHandler } = require('./async-handler')
 const { parseId } = require('./parse-id')
 const { toBatchResponse } = require('./batch.utils')
+const { createExcelRouter } = require('./program-excel-router')
 
 const batchSelect = (recordsTable) => `
   SELECT
@@ -49,8 +50,10 @@ async function getBatchOrFail(executor, batchId, { requireOpen = false } = {}) {
  *   pool            the program's MySQL pool (doktorPool, guwipPool, ...)
  *   program         prefix for generated names, e.g. 'DOKTOR' -> "DOKTOR 2026 - Batch 1"
  *   applicantsRouter  router created with express.Router({ mergeParams: true })
+ *   excel           optional { list(executor, batchId), insert(connection, batchId, data) };
+ *                   enables /export and /import (see program-excel-router.js)
  */
-function createBatchesRouter({ pool, program, applicantsRouter, recordsTable = 'applicants' }) {
+function createBatchesRouter({ pool, program, applicantsRouter, recordsTable = 'applicants', excel }) {
   const router = express.Router()
 
   const findBatch = async (batchId) => {
@@ -115,6 +118,14 @@ function createBatchesRouter({ pool, program, applicantsRouter, recordsTable = '
   )
 
   router.use('/:batchId/applicants', applicantsRouter)
+
+  // EXCEL export / import (only for programs that pass an `excel` adapter)
+  if (excel) {
+    router.use(
+      '/:batchId',
+      createExcelRouter({ pool, programKey: program.toLowerCase(), excel, getBatchOrFail })
+    )
+  }
 
   return router
 }

@@ -26,6 +26,7 @@ import {
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import BatchList from '../components/BatchList.jsx'
+import ExcelButtons from '../components/ExcelButtons.jsx'
 import { useDebounce } from '../utils/useDebounce.js'
 
 const rowsPerPage = 10
@@ -199,6 +200,7 @@ function DoktorTable({ batch, onBack }) {
           {error && !formRow && <Typography color="error" role="alert" variant="body2">{error}</Typography>}
           <Box className="gip-toolbar-actions">
             <TextField aria-label="Search Doktor ti Umili applicants" className="gip-search" onChange={(event) => { setSearch(event.target.value); setPage(0) }} placeholder="Search applicants..." size="small" value={search} />
+            <ExcelButtons basePath="/doktor/batches" batch={batch} isClosed={isClosed} onError={setError} onImported={(data) => setRows(data.map(fromApi))} />
             <Button className="gip-add-button" disabled={isClosed} variant="contained" onClick={() => { setError(''); setFormRow(emptyRow()) }}>Add Applicant</Button>
           </Box>
         </Box>
